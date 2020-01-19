@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="60 seconds">
-    <contextName>doc-document-backend</contextName>
-    <property name="log.directory" value="/opt/docker/logs/" />
+    <contextName>no-waiting-backend</contextName>
+    <property name="log.directory" value="/home/bitnami/no-waiting-backend/" />
     <property name="log.filename" value="${CONTEXT_NAME}.log" />
 
     <!-- do not think this will exists in a ephemeral docker container -->
