@@ -22,13 +22,17 @@ class ContactController @Inject()(cc: ControllerComponents, contactss: Contacts)
                                   util: Util) extends AbstractController(cc) {
 
   val DEFAULT_LANGUAGE = "en"
-  val ENGLISH_DOMAIN = "https://www.talachitas.com/talachitas/html/english/"
-  val ENGLISH_SUCCESS_PAGE = "contact-us-success.html"
-  val ENGLISH_FAILURE_PAGE = "contact-us-error.html"
-  val ENGLISH_EMAIL_SUCCESS_URL = ENGLISH_DOMAIN + ENGLISH_SUCCESS_PAGE
-  val ENGLISH_EMAIL_FAILURE_URL = ENGLISH_DOMAIN + ENGLISH_FAILURE_PAGE
+  val DEFAULT_APP_OR_STATIC = "static"
 
-  val SPANISH_DOMAIN = "https://www.talachitas.com/talachitas/html/spanish/"
+  val KEY_SUCCESS_PAGE = "success-message.html"
+  val KEY_FAILURE_PAGE = "error-message.html"
+  val KEY_INFO_PAGE    = "info-message.html"
+
+  val ENGLISH_DOMAIN_STATIC = "https://www.talachitas.com/talachitas/html/english/"
+  val SPANISH_DOMAIN_STATIC = "https://www.talachitas.com/talachitas/html/spanish/"
+
+  val ENGLISH_DOMAIN_APP = "https://www.talachitas.com/talachitas/html/english/app/"
+  val SPANISH_DOMAIN_APP = "https://www.talachitas.com/talachitas/html/spanish/app/"
 
   implicit val contactReader = ContactFormatter.ContactReader
 
@@ -50,26 +54,20 @@ class ContactController @Inject()(cc: ControllerComponents, contactss: Contacts)
 
   }
 
-  private def redirectSuccess(languageOpt: Option[String]): Result = {
+  case class ParamsUI(languageOpt: Option[String], appOrStaticOpt: Option[String])
 
-    languageOpt.map(lang =>
-      if(lang == "sp")
-        Redirect(ENGLISH_EMAIL_SUCCESS_URL)
-      else
-        Redirect(ENGLISH_EMAIL_SUCCESS_URL))
-      .getOrElse(Redirect(ENGLISH_EMAIL_SUCCESS_URL))
+  private def redirect(languageOpt: Option[String], appOrStaticOpt: Option[String], key: String): Result = {
+    ParamsUI(languageOpt, appOrStaticOpt) match {
+      case ParamsUI(None, None) => Redirect(ENGLISH_DOMAIN_STATIC + key)
+      case ParamsUI(None, _)    => Redirect(ENGLISH_DOMAIN_STATIC + key)
+      case ParamsUI(_, None)    => Redirect(ENGLISH_DOMAIN_STATIC + key)
 
-  }
+      case ParamsUI(Some("en"), Some("static")) => Redirect(ENGLISH_DOMAIN_STATIC + key)
+      case ParamsUI(Some("en"), Some("app"))    => Redirect(ENGLISH_DOMAIN_APP + key)
 
-  private def redirectFailure(languageOpt: Option[String]): Result = {
-
-    languageOpt.map(lang =>
-      if(lang == "sp")
-        Redirect(ENGLISH_EMAIL_FAILURE_URL)
-      else
-        Redirect(ENGLISH_EMAIL_FAILURE_URL))
-      .getOrElse(Redirect(ENGLISH_EMAIL_FAILURE_URL))
-
+      case ParamsUI(Some("sp"), Some("static")) => Redirect(SPANISH_DOMAIN_STATIC + key)
+      case ParamsUI(Some("sp"), Some("app"))    => Redirect(SPANISH_DOMAIN_APP    + key)
+    }
   }
 
   def addContact = Action.async { implicit request =>
@@ -84,6 +82,7 @@ class ContactController @Inject()(cc: ControllerComponents, contactss: Contacts)
       val messageOpt = encodedBody.get("message").map(_.mkString)
       val phoneNumberOpt = encodedBody.get("phone").map(_.mkString)
       val languageOpt = encodedBody.get("language").map(_.mkString).orElse(Some(DEFAULT_LANGUAGE))
+      val appOrStaticOpt = encodedBody.get("app-static").map(_.mkString).orElse(Some(DEFAULT_APP_OR_STATIC))
 
       emailOpt.map { email =>
 
@@ -92,18 +91,18 @@ class ContactController @Inject()(cc: ControllerComponents, contactss: Contacts)
 
         contactss.add(contactUser) map { contactOutbound =>
 
-          redirectSuccess(languageOpt)
+          redirect(languageOpt, appOrStaticOpt, KEY_SUCCESS_PAGE)
 
         }
 
       } getOrElse {
 
-        Future(redirectFailure(languageOpt))
+        Future(redirect(languageOpt, appOrStaticOpt, KEY_FAILURE_PAGE))
       }
 
     } getOrElse {
 
-      Future(redirectFailure(Some(DEFAULT_LANGUAGE)))
+      Future(redirect(Some(DEFAULT_LANGUAGE), Some(DEFAULT_APP_OR_STATIC), KEY_FAILURE_PAGE))
     }
   }
 

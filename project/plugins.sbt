@@ -43,6 +43,13 @@ addSbtPlugin("no.arktekk.sbt" % "aether-deploy" % "0.13")
 // flyway plugin
 //addSbtPlugin("org.flywaydb" % "flyway-sbt" % "4.0.3")
 
+//resolvers += "Flyway" at "https://repo1.maven.org/"
+
+//addSbtPlugin("io.github.davidmweber" % "flyway-sbt" % "6.1.4")
+
+//https://davidmweber.github.io/flyway-sbt.repo/
+resolvers += "Flyway" at "https://davidmweber.github.io/flyway-sbt.repo"
+addSbtPlugin("org.flywaydb" % "flyway-sbt" % "4.2.0")
 
 ////swagger
 //
