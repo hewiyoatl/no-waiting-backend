@@ -78,8 +78,6 @@
 --);
 
 
-create schema talachitas;
-
 CREATE TABLE talachitas.restaurant (
   id    bigint AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100)
