@@ -78,7 +78,7 @@ class UserController @Inject()(cc: ControllerComponents, users: Users, config: C
 
           } getOrElse {
 
-            Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "first name not defined"))))
+            Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "last name not defined"))))
           }
 
         } getOrElse {
@@ -88,7 +88,7 @@ class UserController @Inject()(cc: ControllerComponents, users: Users, config: C
 
       } getOrElse {
 
-        Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "not email defined"))))
+        Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "email not defined"))))
       }
 
     } getOrElse {
