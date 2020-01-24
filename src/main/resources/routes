@@ -54,3 +54,10 @@ GET     /user                       controllers.User.index
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
+
+## Email Service
+## https://github.com/playframework/play-mailer
+GET /talachitas/v1/emails                       controllers.MailController.testEmail
+
+### Play modules documentation
+### https://www.playframework.com/documentation/2.8.x/ModuleDirectory#Emailer-Plugin-(Java-and-Scala)

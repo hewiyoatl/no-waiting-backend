@@ -4,6 +4,10 @@
 
 #### Business Specs for Documents
 
+### Play modules documentation
+
+``` https://www.playframework.com/documentation/2.8.x/ModuleDirectory#Emailer-Plugin-(Java-and-Scala) ```
+
 ### To run the database locally
 ``` java -classpath lib/hsqldb.jar org.hsqldb.server.Server --database.0 file:hsqldb/nowaiting --dbname.0 nowaiting ```
 ```  java -classpath lib/hsqldb.jar org.hsqldb.server.Server ```
