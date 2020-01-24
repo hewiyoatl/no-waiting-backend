@@ -30,6 +30,8 @@ libraryDependencies ++= Seq(
   filters,
   guice,
   ehcache,
+  "com.typesafe.play" %% "play-mailer" % "7.0.1",
+  "com.typesafe.play" %% "play-mailer-guice" % "7.0.1",
   //metrics for database connections
   "nl.grons" %% "metrics-scala" % "3.5.4_a2.3",
   "com.kenshoo" %% "metrics-play" % "2.7.0_0.8.0",
@@ -38,6 +40,7 @@ libraryDependencies ++= Seq(
   "io.prometheus" % "simpleclient_servlet" % "0.0.16",
   "io.prometheus" % "simpleclient_pushgateway" % "0.0.16",
   "mysql" % "mysql-connector-java" % "5.1.34",
+  "org.apache.commons" % "commons-lang3" % "3.0",
   specs2 % Test,
   "com.typesafe.play" %% "play-slick" % "4.0.2",
   //"org.hsqldb" % "hsqldb" % "2.4.0",
