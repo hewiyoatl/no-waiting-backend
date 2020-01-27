@@ -1,12 +1,13 @@
 package model
 
 import com.google.inject.Inject
+import models.{CustomizedSlickConfig, HasDatabaseConfigProviderTalachitas}
+import play.api.Logger
 import play.api.data.Form
 import play.api.data.Forms._
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import slick.jdbc.MySQLProfile.api._
-import slick.driver.HsqldbDriver
+import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
+import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -56,7 +57,13 @@ class ClientTableDef(tag: Tag) extends Table[Client](tag, Some("talachitas"), "c
   def deleted = column[Boolean]("deleted")
 }
 
-class Clients @Inject()(val dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfigProvider[JdbcProfile] {
+class Clients @Inject()(val dbConfigProvider: DatabaseConfigProvider,
+                        customizedSlickConfig: CustomizedSlickConfig)
+  extends HasDatabaseConfigProviderTalachitas[JdbcProfile] {
+
+  val logger: Logger = Logger(this.getClass())
+
+  this.dbConfig = customizedSlickConfig.createDbConfigCustomized(dbConfigProvider)
 
   val clients = TableQuery[ClientTableDef]
 

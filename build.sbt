@@ -1,3 +1,4 @@
+
 import com.typesafe.config.ConfigFactory
 import scoverage.ScoverageKeys
 
@@ -30,6 +31,7 @@ libraryDependencies ++= Seq(
   filters,
   guice,
   ehcache,
+  "com.google.crypto.tink" % "tink" % "1.3.0-rc3", //https://github.com/google/tink
   "com.typesafe.play" %% "play-mailer" % "7.0.1",
   "com.typesafe.play" %% "play-mailer-guice" % "7.0.1",
   //metrics for database connections
@@ -72,30 +74,6 @@ def getConfig: com.typesafe.config.Config = {
 }
 
 maintainer := "info@talachitas.com"
-
-//import com.github.sbtliquibase.SbtLiquibase
-
-//enablePlugins(SbtLiquibase)
-
-//liquibaseUsername := getConfig.getString("db.default.user") // "hespinosa"
-
-//liquibasePassword := getConfig.getString("db.default.password") // "hespinosa"
-
-//liquibaseDriver := getConfig.getString("db.default.driver") // "org.postgresql.Driver"
-
-//liquibaseUrl := getConfig.getString("db.default.url")  //"jdbc:postgresql://localhost:5432/documents?currentSchema=template"
-
-// liquibaseUsername := "postgres"
-
-// liquibasePassword := "postgres"
-
-// liquibaseDriver := "org.postgresql.Driver"
-
-// liquibaseUrl := "jdbc:postgresql://10.1.100.95:5432/rldev8?currentSchema=template"
-
-// Full path to your changelog file. This defaults 'src/main/migrations/changelog.xml'.
-// liquibaseChangelog := file("./liquidbase/scripts/changesets/changelog.xml")
-
 
 enablePlugins(FlywayPlugin)
 //version := "0.0.1"
@@ -144,6 +122,7 @@ assemblyMergeStrategy in assembly := {
   case PathList(ps @ _*) if ps.last endsWith "module-info.class" => MergeStrategy.concat
   case PathList("reference-overrides.conf") => MergeStrategy.concat
   case PathList("org", "slf4j", xs @ _*) => MergeStrategy.last
+  case PathList("javax", "activation", xs @ _*) => MergeStrategy.first
   case PathList("com", "zaxxer", xs @ _*) => MergeStrategy.last
   case PathList("org", "apache", "log4j", xs @ _*) => MergeStrategy.last
   case PathList("org", "apache", "commons", "logging", xs @ _*) => MergeStrategy.discard

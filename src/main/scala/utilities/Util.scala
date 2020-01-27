@@ -1,21 +1,11 @@
 package utilities
 
-import java.security.spec.{ECParameterSpec, ECPrivateKeySpec}
-import java.security.{KeyFactory, PrivateKey}
-
 import com.kenshoo.play.metrics.Metrics
 import com.zaxxer.hikari.HikariDataSource
 import javax.inject.Inject
-import models.UserOutbound
-import org.bouncycastle.jce.ECNamedCurveTable
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.jce.spec.ECNamedCurveSpec
-import org.joda.time.DateTime
-import pdi.jwt.{Jwt, JwtAlgorithm}
 import play.api.{Configuration, Logger}
 import play.api.db.Database
 import play.api.i18n.{Lang, MessagesApi}
-import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc._
 
 class Util @Inject()(config: Configuration) {
@@ -31,30 +21,6 @@ class Util @Inject()(config: Configuration) {
    * Empty json
    */
   val EMPTY_JSON: String = "{}"
-
-  val privateKey: PrivateKey = {
-
-    val S = BigInt(s, 16)
-    val curveParams = ECNamedCurveTable.getParameterSpec("P-521")
-    val curveSpec: ECParameterSpec = new ECNamedCurveSpec(
-      "P-521",
-      curveParams.getCurve(),
-      curveParams.getG(),
-      curveParams.getN(),
-      curveParams.getH())
-
-    val privateSpec = new ECPrivateKeySpec(S.underlying(), curveSpec)
-    import java.security.Security
-    Security.addProvider(new BouncyCastleProvider)
-    val privateKeyEC = KeyFactory.getInstance("ECDSA", "BC").generatePrivate(privateSpec)
-
-    privateKeyEC
-
-  }
-
-  private def s = config.get[String]("auth.s")
-
-  private def expiration = config.get[Int]("auth.expiration")
 
   /**
    * Utility method to validate that all the characters of a string are digits.
@@ -102,18 +68,6 @@ class Util @Inject()(config: Configuration) {
     URLParts(urlExtract.getProtocol, urlExtract.getHost, urlExtract.getPort, urlExtract.getPath)
   }
 
-  /**
-    * value can be the password per see + a salt
-    *
-    * https://stackoverflow.com/questions/6840206/sha2-password-hashing-in-java
-    *
-    * @param value
-    * @return
-    */
-  def getSha256(value: String) : String = {
-    org.apache.commons.codec.digest.DigestUtils.sha256Hex(value)
-  }
-
   def headers = List(
     "Access-Control-Allow-Origin" -> "*",
     "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, DELETE, PUT",
@@ -122,35 +76,4 @@ class Util @Inject()(config: Configuration) {
     "Access-Control-Allow-Credentials" -> "true"
   )
 
-  def decodeBasicAuth(authHeader: String): (String, String) = {
-    val baStr = authHeader.replaceFirst("Basic ", "")
-    val decoded = new sun.misc.BASE64Decoder().decodeBuffer(baStr)
-    val Array(user, password) = new String(decoded).split(":")
-    (user, password)
-  }
-
-  def provideToken(user: UserOutbound): JsObject = {
-
-    val message =      s"""{"email":"${user.email.getOrElse("")}",
-                           |"first_name":"${user.firstName.getOrElse("")}",
-                           |"last_name":"${user.lastName.getOrElse("")}",
-                           |"roles": "${user.roles.getOrElse("")}",
-                           |"exp": ${(new DateTime()).plusSeconds(expiration).getMillis},
-                           |"iat": ${System.currentTimeMillis()}}""".stripMargin
-
-    logger.info("Message to encode " + message)
-
-    val token = Jwt.encode(message,
-      privateKey,
-      JwtAlgorithm.ES512)
-
-    Json.obj(
-      "email" -> user.email.map(JsString(_)),
-      "first_name" -> user.firstName.map(JsString(_)),
-      "last_name" -> user.lastName.map(JsString(_)),
-      "roles" -> Json.toJson(user.roles.map(x => x).getOrElse(List())),
-      "nickname" -> user.nickname.map(JsString(_)),
-      "bearer_token" -> token)
-
-  }
 }
