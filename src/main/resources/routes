@@ -61,3 +61,13 @@ GET /talachitas/v1/emails                       controllers.MailController.testE
 
 ### Play modules documentation
 ### https://www.playframework.com/documentation/2.8.x/ModuleDirectory#Emailer-Plugin-(Java-and-Scala)
+
+GET /talachitas/v1/keys                         controllers.EncryptDecryptController.generateKeyFileAPI
+
+GET /talachitas/v1/enc-des/:plaintext           controllers.EncryptDecryptController.encryptDecrypt(plaintext: String)
+
+GET /talachitas/v1/encrypt/:plaintext           controllers.EncryptDecryptController.encrypt(plaintext: String)
+
+### remember to escape only the ciphertext since it is base64 containing = characters
+### https://www.urlencoder.org/
+GET /talachitas/v1/decrypt/:ciphertext          controllers.EncryptDecryptController.decrypt(ciphertext: String)

@@ -3,9 +3,9 @@ package models
 import com.google.inject.Inject
 import formatter.Contact
 import play.api.Logger
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import slick.jdbc.MySQLProfile.api._
+import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
+import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -15,13 +15,18 @@ case class ContactTable(email: Option[String],
                         message: Option[String],
                         phoneNumber: Option[String])
 
-class Contacts @Inject()(val dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfigProvider[JdbcProfile] {
+class Contacts @Inject()(val dbConfigProvider: DatabaseConfigProvider,
+                         customizedSlickConfig: CustomizedSlickConfig)
+  extends HasDatabaseConfigProviderTalachitas[JdbcProfile] {
 
   val logger: Logger = Logger(this.getClass())
+
+  this.dbConfig = customizedSlickConfig.createDbConfigCustomized(dbConfigProvider)
 
   val contacts = TableQuery[ContactTableDef]
 
   def listContacts: Future[Seq[Contact]] = {
+
     db.run(contacts.map(contact =>
       (contact.email, contact.subject, contact.message, contact.phoneNumber)).result.map(
       _.seq.map {

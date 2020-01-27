@@ -1,5 +1,6 @@
 package controllers
 
+import auth.AuthService
 import formatter.{Error, ErrorFormatter}
 import javax.inject.Inject
 import models.{UserIn, Users}
@@ -12,7 +13,11 @@ import utilities.Util
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class UserController @Inject()(cc: ControllerComponents, users: Users, config: Configuration, util: Util)
+class UserController @Inject()(cc: ControllerComponents,
+                               users: Users,
+                               authService: AuthService,
+                               config: Configuration,
+                               util: Util)
                               (implicit context: ExecutionContext) extends AbstractController(cc) {
 
   implicit val errorWriter = ErrorFormatter.errorWriter
@@ -21,7 +26,7 @@ class UserController @Inject()(cc: ControllerComponents, users: Users, config: C
 
     request.headers.get(HeaderNames.AUTHORIZATION) map { basicHeader =>
 
-      val (user, passwordPlain) = util.decodeBasicAuth(basicHeader)
+      val (user, passwordPlain) = authService.decodeBasicAuth(basicHeader)
 
       //val password = util.getSha256(passwordPlain)
 
@@ -30,7 +35,7 @@ class UserController @Inject()(cc: ControllerComponents, users: Users, config: C
 
         userOpt map { user =>
 
-          val token = util.provideToken(user)
+          val token = authService.provideToken(user)
 
           Ok(token).withHeaders(util.headers: _*)
 
@@ -96,5 +101,4 @@ class UserController @Inject()(cc: ControllerComponents, users: Users, config: C
       Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "not well-formed"))))
     }
   }
-
 }

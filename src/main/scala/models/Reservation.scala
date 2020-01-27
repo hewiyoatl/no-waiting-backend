@@ -2,11 +2,12 @@ package models
 
 import com.google.inject.Inject
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.data.Form
 import play.api.data.Forms._
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import slick.jdbc.MySQLProfile.api._
+import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
+import slick.jdbc.MySQLProfile.api._
 import utilities.DateTimeMapper._
 import utilities.MaybeFilter
 
@@ -59,7 +60,13 @@ class ReservationTableDef(tag: Tag) extends Table[Reservation](tag, Some("talach
     (id, userId, userType, locationId, status, createdTimestamp) <>(Reservation.tupled, Reservation.unapply)
 }
 
-class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfigProvider[JdbcProfile] {
+class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
+                             customizedSlickConfig: CustomizedSlickConfig)
+  extends HasDatabaseConfigProviderTalachitas[JdbcProfile] {
+
+  val logger: Logger = Logger(this.getClass())
+
+  this.dbConfig = customizedSlickConfig.createDbConfigCustomized(dbConfigProvider)
 
   val reservations = TableQuery[ReservationTableDef]
 

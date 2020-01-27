@@ -1,11 +1,12 @@
 package models
 
 import com.google.inject.Inject
+import play.api.Logger
 import play.api.data.Form
 import play.api.data.Forms._
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import slick.jdbc.MySQLProfile.api._
+import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
+import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -69,7 +70,13 @@ class RestUserTableDef(tag: Tag) extends Table[RestUser](tag, Some("talachitas")
       deleted) <>(RestUser.tupled, RestUser.unapply)
 }
 
-class RestUsers @Inject()(val dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfigProvider[JdbcProfile] {
+class RestUsers @Inject()(val dbConfigProvider: DatabaseConfigProvider,
+                          customizedSlickConfig: CustomizedSlickConfig)
+  extends HasDatabaseConfigProviderTalachitas[JdbcProfile] {
+
+  val logger: Logger = Logger(this.getClass())
+
+  this.dbConfig = customizedSlickConfig.createDbConfigCustomized(dbConfigProvider)
 
   val restUsers = TableQuery[RestUserTableDef]
 

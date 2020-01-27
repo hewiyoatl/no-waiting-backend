@@ -2,11 +2,12 @@ package models
 
 import com.google.inject.Inject
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.data.Form
 import play.api.data.Forms._
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import slick.jdbc.MySQLProfile.api._
+import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
+import slick.jdbc.MySQLProfile.api._
 import utilities.DateTimeMapper._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -96,7 +97,13 @@ class RestaurantTableDef(tag: Tag) extends Table[Restaurant](tag, Some("talachit
     deleted) <>(Restaurant.tupled, Restaurant.unapply)
 }
 
-class Restaurants @Inject()(val dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfigProvider[JdbcProfile] {
+class Restaurants @Inject()(val dbConfigProvider: DatabaseConfigProvider,
+                            customizedSlickConfig: CustomizedSlickConfig)
+  extends HasDatabaseConfigProviderTalachitas[JdbcProfile] {
+
+  val logger: Logger = Logger(this.getClass())
+
+  this.dbConfig = customizedSlickConfig.createDbConfigCustomized(dbConfigProvider)
 
   val restaurants = TableQuery[RestaurantTableDef]
 

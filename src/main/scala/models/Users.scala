@@ -1,11 +1,10 @@
 package models
 
 import com.google.inject.Inject
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-//import slick.driver.PostgresDriver.api._
-//import slick.driver.MySQLDriver.api._
-import slick.jdbc.MySQLProfile.api._
+import play.api.Logger
+import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
+import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -28,7 +27,13 @@ case class UserOutbound(id: Option[Long],
                         roles: Option[List[String]],
                         bearerToken: Option[String])
 
-class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfigProvider[JdbcProfile] {
+class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
+                      customizedSlickConfig: CustomizedSlickConfig)
+  extends HasDatabaseConfigProviderTalachitas[JdbcProfile] {
+
+  val logger: Logger = Logger(this.getClass())
+
+  this.dbConfig = customizedSlickConfig.createDbConfigCustomized(dbConfigProvider)
 
   val users = TableQuery[UsersTableDef]
 
