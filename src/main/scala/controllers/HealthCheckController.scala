@@ -13,6 +13,7 @@ import play.api.Logger
 import play.api.db._
 import play.api.http.ContentTypes
 import play.api.mvc._
+import services.MetricsService
 
 import scala.concurrent.ExecutionContext
 
@@ -25,7 +26,7 @@ import scala.concurrent.ExecutionContext
 class HealthCheckController @Inject()(cc: ControllerComponents)
                                      (implicit context: ExecutionContext,
                                       database: Database,
-                                      metrics: MetricsFacade) extends AbstractController(cc) {
+                                      metricsService: MetricsService) extends AbstractController(cc) {
 
   val logger: Logger = Logger(this.getClass())
 
@@ -79,7 +80,7 @@ class HealthCheckController @Inject()(cc: ControllerComponents)
    */
   def captureMetrics = Action {
     try {
-      Ok(metrics.metricsPlay.toJson)
+      Ok(metricsService.metricsPlay.toJson)
         .as("application/json")
         .withHeaders("Cache-Control" -> "must-revalidate,no-cache,no-store")
     } catch {
@@ -96,7 +97,7 @@ class HealthCheckController @Inject()(cc: ControllerComponents)
    */
   def captureMetricsPrometheus = Action {
     val registry: CollectorRegistry = CollectorRegistry.defaultRegistry
-    Ok(metrics.write004(registry.metricFamilySamples))
+    Ok(metricsService.write004(registry.metricFamilySamples))
       .as(ContentTypes.TEXT)
   }
 

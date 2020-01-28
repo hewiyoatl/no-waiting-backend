@@ -4,7 +4,7 @@ import auth.{AuthAdminAction, AuthUserAction}
 import javax.inject.Inject
 import play.api.mvc._
 import play.api.{Configuration, Logger}
-import services.MailerService
+import services.{MailerService, MetricsService}
 import utilities.Util
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -12,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class MailController @Inject()(cc: ControllerComponents)
                               (implicit context: ExecutionContext,
-                               metrics: MetricsFacade,
+                               metricsService: MetricsService,
                                authUserAction: AuthUserAction,
                                authAdminAction: AuthAdminAction,
                                config: Configuration,

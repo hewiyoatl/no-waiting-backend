@@ -3,11 +3,12 @@ package controllers
 import auth.AuthService
 import formatter.{Error, ErrorFormatter}
 import javax.inject.Inject
-import models.{UserIn, Users}
+import models.{UserIn, UserOutbound, Users}
 import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import play.mvc.Http.HeaderNames
+import services.MetricsService
 import utilities.Util
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -17,6 +18,7 @@ class UserController @Inject()(cc: ControllerComponents,
                                users: Users,
                                authService: AuthService,
                                config: Configuration,
+                               metricsService: MetricsService,
                                util: Util)
                               (implicit context: ExecutionContext) extends AbstractController(cc) {
 
@@ -75,9 +77,17 @@ class UserController @Inject()(cc: ControllerComponents,
 
             val newUser = UserIn(None, email, nicknameOpt, passwordOpt.getOrElse(""), firstName, lastName, phoneOpt, "Client")
 
+            val existedUser: Future[Option[UserOutbound]] = users.retrieveUser(email, passwordOpt.getOrElse(""))
+
+            existedUser map { userOutbound =>
+
+              Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "last name not defined"))))
+
+            }
+
             users.addUser(newUser) map { userOutbound =>
 
-              Ok("good")
+              Ok("good").withHeaders(util.headers: _*)
 
             }
 

@@ -7,6 +7,7 @@ import models.{ContactTable, Contacts}
 import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.mvc._
+import services.MetricsService
 import utilities.Util
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,7 +16,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ContactController @Inject()(cc: ControllerComponents, contactss: Contacts)
                                  (implicit context: ExecutionContext,
-                                  metrics: MetricsFacade,
+                                  metricsService: MetricsService,
                                   authUserAction: AuthUserAction,
                                   authAdminAction: AuthAdminAction,
                                   config: Configuration,

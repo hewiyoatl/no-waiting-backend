@@ -1,13 +1,12 @@
-package controllers
+package services
 
 import java.util
 import java.util.Collections
-import javax.inject.Inject
 
 import com.codahale.metrics.Timer
-import io.prometheus.client._
-
 import com.kenshoo.play.metrics._
+import io.prometheus.client._
+import javax.inject.Inject
 
 case class MetricsResponse(histogram: Histogram.Timer,
                            summary: Summary.Timer,
@@ -20,7 +19,7 @@ case class MetricsResponse(histogram: Histogram.Timer,
  *
  * @param metrics
  */
-class MetricsFacade @Inject()(metrics: Metrics){
+class MetricsService @Inject()(metrics: Metrics){
 
   val requests: Counter = Counter.build()
     .name("requests_total").help("Total requests.").labelNames("http", "function").register()
