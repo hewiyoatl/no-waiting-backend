@@ -3,7 +3,7 @@ package controllers
 import auth.AuthService
 import formatter.{Error, ErrorFormatter}
 import javax.inject.Inject
-import models.{UserIn, UserOutbound, Users}
+import models.{UserIn, Users}
 import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
@@ -68,7 +68,6 @@ class UserController @Inject()(cc: ControllerComponents,
       val lastNameOpt: Option[String] = (json \ "last_name").asOpt[String]
       val phoneOpt: Option[String] = (json \ "phone").asOpt[String]
 
-
       emailOpt.map { email =>
 
         firstNameOpt.map { firstName =>
@@ -77,17 +76,25 @@ class UserController @Inject()(cc: ControllerComponents,
 
             val newUser = UserIn(None, email, nicknameOpt, passwordOpt.getOrElse(""), firstName, lastName, phoneOpt, "Client")
 
-            val existedUser: Future[Option[UserOutbound]] = users.retrieveUser(email, passwordOpt.getOrElse(""))
+            users.verifyUser(email).flatMap { userExist =>
 
-            existedUser map { userOutbound =>
+              userExist match {
 
-              Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "last name not defined"))))
+                case true => {
 
-            }
+                  Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"User ${email} already exists in the DB"))))
+                }
 
-            users.addUser(newUser) map { userOutbound =>
+                case false => {
 
-              Ok("good").withHeaders(util.headers: _*)
+                  users.addUser(newUser) map { userOutbound =>
+
+                    Ok(s"User ${userOutbound.get.email.getOrElse("")} created")
+                  }
+
+                }
+
+              }
 
             }
 

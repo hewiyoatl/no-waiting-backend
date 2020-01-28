@@ -100,6 +100,11 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 
   }
 
+  def verifyUser(email: String): Future[Boolean] = {
+
+    db.run(users.filter(u => u.email === email).exists.result)
+  }
+
 //  def deleteContact(email: String): Future[Int] = {
 //
 //    db.run(users.filter(_.email === email).delete)
