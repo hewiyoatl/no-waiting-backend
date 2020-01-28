@@ -66,7 +66,6 @@ class UserController @Inject()(cc: ControllerComponents,
       val lastNameOpt: Option[String] = (json \ "last_name").asOpt[String]
       val phoneOpt: Option[String] = (json \ "phone").asOpt[String]
 
-
       emailOpt.map { email =>
 
         firstNameOpt.map { firstName =>
@@ -75,9 +74,25 @@ class UserController @Inject()(cc: ControllerComponents,
 
             val newUser = UserIn(None, email, nicknameOpt, passwordOpt.getOrElse(""), firstName, lastName, phoneOpt, "Client")
 
-            users.addUser(newUser) map { userOutbound =>
+            users.verifyUser(email).flatMap { userExist =>
 
-              Ok("good")
+              userExist match {
+
+                case true => {
+
+                  Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"User ${email} already exists in the DB"))))
+                }
+
+                case false => {
+
+                  users.addUser(newUser) map { userOutbound =>
+
+                    Ok(s"User ${userOutbound.get.email.getOrElse("")} created")
+                  }
+
+                }
+
+              }
 
             }
 
