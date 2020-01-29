@@ -39,13 +39,14 @@ DELETE /talachitas/v1/contacts/:email                     controllers.ContactCon
 
 GET /talachitas/v1/contacts/ping                     controllers.ContactController.ping
 
-#GET /talachitas/v1/token                          controllers.TokenController.provideToken
-#OPTIONS /talachitas/v1/token                          controllers.OptionsController.options
-
 GET      /talachitas/v1/login/profile                   controllers.UserController.profile
 OPTIONS  /talachitas/v1/login/profile                   controllers.OptionsController.options
 
-POST /talachitas/v1/users                       controllers.UserController.addUser
+POST     /talachitas/v1/users                       controllers.UserController.addUser
+OPTIONS  /talachitas/v1/users                       controllers.OptionsController.options
+
+GET      /talachitas/v1/users/verifyEmail/:verify                       controllers.UserController.verifyEmail(verify: String)
+OPTIONS  /talachitas/v1/users/verifyEmail/:verify                       controllers.OptionsController.optionsString(verify: String)
 
 # Home page
 GET     /                           controllers.Application.index

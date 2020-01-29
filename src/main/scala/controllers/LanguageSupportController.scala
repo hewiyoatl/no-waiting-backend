@@ -4,6 +4,7 @@ import javax.inject.Inject
 import play.api.db.Database
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc._
+import services.MetricsService
 import utilities.Util
 
 import scala.concurrent.ExecutionContext
@@ -11,7 +12,7 @@ import scala.concurrent.ExecutionContext
 class LanguageSupportController @Inject()(cc: ControllerComponents)
                                          (implicit context: ExecutionContext,
                                           database: Database,
-                                          metrics: MetricsFacade,
+                                          metricsService: MetricsService,
                                           messagesApi: MessagesApi,
                                           util: Util) extends AbstractController(cc) with I18nSupport  {
   def index = Action { request =>

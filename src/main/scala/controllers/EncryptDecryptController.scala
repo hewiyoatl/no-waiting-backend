@@ -3,14 +3,14 @@ package controllers
 import javax.inject.Inject
 import play.api.mvc.{AbstractController, ControllerComponents}
 import play.api.{Configuration, Logger}
-import services.EncryptDecryptService
+import services.{EncryptDecryptService, MetricsService}
 import utilities.Util
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class EncryptDecryptController @Inject()(cc: ControllerComponents)
                                         (implicit context: ExecutionContext,
-                                         metrics: MetricsFacade,
+                                         metricsService: MetricsService,
                                          config: Configuration,
                                          encryptDecryptService: EncryptDecryptService,
                                          util: Util) extends AbstractController(cc) {

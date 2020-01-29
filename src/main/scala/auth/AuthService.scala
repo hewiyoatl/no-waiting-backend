@@ -4,7 +4,7 @@ import java.security.spec.{ECParameterSpec, ECPoint, ECPrivateKeySpec, ECPublicK
 import java.security.{KeyFactory, PrivateKey, PublicKey}
 
 import javax.inject.Inject
-import models.UserOutbound
+import models.{UserIn, UserOutbound}
 import org.bouncycastle.jce.ECNamedCurveTable
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.jce.spec.ECNamedCurveSpec
@@ -124,6 +124,19 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
     }
   }
 
+  private val validateEmailsClaims = (claims: JwtClaim) => {
+
+//    val roles: Option[String] = (Json.parse(claims.content) \ "roles").asOpt[String]
+//
+//    val isUser: Boolean = roles.map(_.contains("User")).getOrElse(false)
+
+    if (claims.expiration.get > System.currentTimeMillis) {
+      Success(claims)
+    } else {
+      Failure(new Exception("Token expired"))
+    }
+  }
+
   // Validates a JWT and potentially returns the claims if the token was
   // successfully parsed and validated
   def validateUserJwt(token: String): Try[JwtClaim] = for {
@@ -133,6 +146,15 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
     claims <- JwtJson.decode(token, publicKey, Seq(JwtAlgorithm.ES512)) // Decode the token using the secret key
 
     _ <- validateUserClaims(claims) // validate the data stored inside the token
+  } yield claims
+
+  def validateEmailJwt(token: String): Try[JwtClaim] = for {
+
+    //    jwk <- getJwk(token) // Get the secret key for this token
+
+    claims <- JwtJson.decode(token, publicKey, Seq(JwtAlgorithm.ES512)) // Decode the token using the secret key
+
+    _ <- validateEmailsClaims(claims) // validate the data stored inside the token
   } yield claims
 
   def validateAdminJwt(token: String): Try[JwtClaim] = for {
@@ -153,6 +175,7 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
 //  private def s = config.get[String]("auth.s")
 
   private def expiration = config.get[Int]("auth.expiration")
+  private def expirationEmailVerification = config.get[Int]("auth.expirationVerifyEmails")
 
   // Your Auth0 audience, read from configuration
   //  private def audience = config.get[String]("auth0.audience")
@@ -187,6 +210,22 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
       "nickname" -> user.nickname.map(JsString(_)),
       "bearer_token" -> token)
 
+  }
+
+  def provideTokenEmailVerification(userIn: UserIn): String = {
+
+    val message =    s"""{"email":"${userIn.email}",
+                          |"first_name":"${userIn.firstName}",
+                          |"last_name":"${userIn.lastName}",
+                          |"roles": "${userIn.roles}",
+                          |"exp": ${(new DateTime()).plusDays(expirationEmailVerification).getMillis},
+                          |"iat": ${System.currentTimeMillis()}}""".stripMargin
+
+    val token = Jwt.encode(message,
+      privateKey,
+      JwtAlgorithm.ES512)
+
+    token
   }
 
   /**

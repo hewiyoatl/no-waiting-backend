@@ -9,6 +9,7 @@ import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.mvc._
+import services.{MetricsService}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -16,7 +17,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class Callback @Inject()(cc: ControllerComponents)
                         (implicit context: ExecutionContext,
                          config: Configuration,
-                         metrics: MetricsFacade,
+                         metricsService: MetricsService,
                          wsClient: WSClient,
                          env: play.api.Environment,
                          cache: SyncCacheApi) extends AbstractController(cc) {

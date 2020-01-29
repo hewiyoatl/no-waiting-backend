@@ -6,13 +6,14 @@ import play.api.Configuration
 import play.api.cache.SyncCacheApi
 import play.api.libs.ws.WSClient
 import play.api.mvc.{AbstractController, ControllerComponents}
+import services.MetricsService
 
 import scala.concurrent.ExecutionContext
 
 class Application @Inject()(cc: ControllerComponents)
                            (implicit context: ExecutionContext,
                             config: Configuration,
-                            metrics: MetricsFacade,
+                            metricsService: MetricsService,
                             wsClient: WSClient,
                             env: play.api.Environment,
                             cache: SyncCacheApi) extends AbstractController(cc) {

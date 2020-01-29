@@ -34,22 +34,9 @@ addSbtPlugin("me.lessis" % "bintray-sbt" % "0.1.2")
 //aether plugin
 addSbtPlugin("no.arktekk.sbt" % "aether-deploy" % "0.13")
 
-// for war / publish but it is just required to build
-//addSbtPlugin("com.earldouglas" % "xsbt-web-plugin" % "1.0.0")
-
-// flyway plugin repo
-//resolvers += "Flyway" at "https://flywaydb.org/repo"
-
-// flyway plugin
-//addSbtPlugin("org.flywaydb" % "flyway-sbt" % "4.0.3")
-
-//resolvers += "Flyway" at "https://repo1.maven.org/"
-
-//addSbtPlugin("io.github.davidmweber" % "flyway-sbt" % "6.1.4")
-
-//https://davidmweber.github.io/flyway-sbt.repo/
-resolvers += "Flyway" at "https://davidmweber.github.io/flyway-sbt.repo"
-addSbtPlugin("org.flywaydb" % "flyway-sbt" % "4.2.0")
+////https://davidmweber.github.io/flyway-sbt.repo/
+//resolvers += "Flyway" at "https://davidmweber.github.io/flyway-sbt.repo"
+//addSbtPlugin("org.flywaydb" % "flyway-sbt" % "4.2.0")
 
 ////swagger
 //

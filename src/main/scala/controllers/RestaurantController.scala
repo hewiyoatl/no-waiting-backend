@@ -5,6 +5,7 @@ import javax.inject.Inject
 import models.{Restaurant, Restaurants}
 import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.mvc._
+import services.MetricsService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -12,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Restaurants)
                                     (implicit context: ExecutionContext,
-                                     metrics: MetricsFacade) extends AbstractController(cc) {
+                                     metricsService: MetricsService) extends AbstractController(cc) {
 
   implicit val restaurantReader = RestaurantFormatter.RestaurantReader
 

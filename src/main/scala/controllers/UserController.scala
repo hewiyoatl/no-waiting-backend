@@ -8,15 +8,22 @@ import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import play.mvc.Http.HeaderNames
+import services.{MailerService, MetricsService}
 import utilities.Util
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
+
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 
 class UserController @Inject()(cc: ControllerComponents,
                                users: Users,
                                authService: AuthService,
                                config: Configuration,
+                               metricsService: MetricsService,
+                               mailerService: MailerService,
                                util: Util)
                               (implicit context: ExecutionContext) extends AbstractController(cc) {
 
@@ -52,6 +59,31 @@ class UserController @Inject()(cc: ControllerComponents,
 
   }
 
+  def verifyEmail(verifyToken: String) = Action.async { implicit request =>
+
+      authService.validateEmailJwt(verifyToken) match {
+        case Success(claim) => {
+          val emailToValidate: String = (Json.parse(claim.content) \ "email").as[String]
+          users.verifyUser(emailToValidate).flatMap { userExist =>
+            userExist match {
+              case true => {
+                //users.addUser()
+                //here made the update
+                Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"User already exists"))).withHeaders(util.headers: _*))
+              }
+              case false => {
+                Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Email do not exists or invalid"))).withHeaders(util.headers: _*))
+              }
+              case _ => {
+                Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Something strange happened"))).withHeaders(util.headers: _*))
+              }
+            }
+          }
+        }
+        case Failure(t) => Future.successful(Results.Unauthorized(t.getMessage).withHeaders(util.headers: _*)) // token was invalid - return 401
+      }
+  }
+
   def addUser = Action.async { implicit request =>
 
     val body: AnyContent = request.body
@@ -80,14 +112,27 @@ class UserController @Inject()(cc: ControllerComponents,
 
                 case true => {
 
-                  Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"User ${email} already exists in the DB"))))
+                  Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"User ${email} already exists"))).withHeaders(util.headers: _*))
                 }
 
                 case false => {
 
                   users.addUser(newUser) map { userOutbound =>
 
-                    Ok(s"User ${userOutbound.get.email.getOrElse("")} created")
+                    val emailToken: String = authService.provideTokenEmailVerification(newUser)
+
+                    val emailTokenEncoded: String = URLEncoder.encode(emailToken, StandardCharsets.UTF_8.toString)
+
+                    mailerService.sendVerifyEmail(
+                      "Talachitas.com - Verify Email " + firstName + " " + lastName,
+                      "talachitasus@gmail.com",
+                      email,
+                      "mauricio.gomez.77@gmail.com",
+                      firstName + " " + lastName + ", you have received successfully your verify email.",
+                      "/talachitas/v1/users/verifyEmail/" + emailTokenEncoded
+                    )
+
+                    Ok(s"User ${userOutbound.get.email.getOrElse("")} created").withHeaders(util.headers: _*)
                   }
 
                 }
@@ -98,22 +143,22 @@ class UserController @Inject()(cc: ControllerComponents,
 
           } getOrElse {
 
-            Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "last name not defined"))))
+            Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "last name not defined"))).withHeaders(util.headers: _*))
           }
 
         } getOrElse {
 
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "first name not defined"))))
+          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "first name not defined"))).withHeaders(util.headers: _*))
         }
 
       } getOrElse {
 
-        Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "email not defined"))))
+        Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "email not defined"))).withHeaders(util.headers: _*))
       }
 
     } getOrElse {
 
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "not well-formed"))))
+      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "not well-formed"))).withHeaders(util.headers: _*))
     }
   }
 }

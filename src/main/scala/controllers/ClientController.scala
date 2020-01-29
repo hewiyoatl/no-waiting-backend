@@ -1,7 +1,6 @@
 package controllers
 
 import javax.inject.Inject
-
 import formatter.{Error, ErrorFormatter, UserFormatter, UserInbound}
 import model.Clients
 import play.api.Configuration
@@ -9,13 +8,14 @@ import play.api.cache.SyncCacheApi
 import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.mvc._
+import services.MetricsService
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class ClientController @Inject()(cc: ControllerComponents, users: Clients)
                                 (implicit context: ExecutionContext,
                                  config: Configuration,
-                                 metrics: MetricsFacade,
+                                 metricsService: MetricsService,
                                  wsClient: WSClient,
                                  env: play.api.Environment,
                                  cache: SyncCacheApi) extends AbstractController(cc) {

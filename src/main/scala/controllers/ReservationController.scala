@@ -5,6 +5,7 @@ import javax.inject.Inject
 import models.{Reservation, Reservations}
 import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.mvc._
+import services.MetricsService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -12,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ReservationController @Inject()(cc: ControllerComponents, reservations: Reservations)
                                      (implicit context: ExecutionContext,
-                                      metrics: MetricsFacade) extends AbstractController(cc) {
+                                      metricsService: MetricsService) extends AbstractController(cc) {
 
   implicit val reservationReader = ReservationFormatter.ReservationReader
 
