@@ -73,40 +73,6 @@ def getConfig: com.typesafe.config.Config = {
   ConfigFactory.load(classLoader)
 }
 
-maintainer := "info@talachitas.com"
-
-enablePlugins(FlywayPlugin)
-//version := "0.0.1"
-//name := "flyway-sbt-test1"
-
-//local
-flywayUrl := getConfig.getString("slick.dbs.default.db.url")
-
-//server remote
-//flywayUrl := "jdbc:mysql://localhost:13306/talachitas"
-
-flywaySchemas := Seq("talachitas")
-
-flywayUser := getConfig.getString("slick.dbs.default.db.user")
-
-//remote
-//flywayUser := "admin"
-
-flywayPassword := getConfig.getString("slick.dbs.default.db.password")
-
-//remote
-//flywayPassword := "Kkconqueso1."
-
-//flywaySqlMigrationPrefix := ""
-
-//flywayRepeatableSqlMigrationPrefix := ""
-
-flywayLocations := Seq("filesystem:./data/sql")
-
-//flywaySqlMigrationSeparator := "."
-
-flywayTable := "flyway_schema_version"
-
 // to generate the docker images
 enablePlugins(JavaAppPackaging)
 

@@ -16,7 +16,7 @@
 ```https://www.dyclassroom.com/howto-mac/how-to-install-apache-mysql-php-on-macos-mojave-10-14```
 
 
-### To run the scripts on the databse
+### To run the scripts on the database
 
 ```  java -cp lib/hsqldb.jar org.hsqldb.util.DatabaseManagerSwing ```
 
@@ -115,16 +115,6 @@ Finally open your browser on:  http://localhost:8080  (kafka manager ui)
 
 ```sbt war```
 
-#### Drop database objects for either flyway
-
-```DROP SCHEMA doc_template CASCADE;```
-```REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public FROM doc_admin;```
-```REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public FROM doc_app;```
-```REVOKE ALL PRIVILEGES ON SCHEMA public FROM doc_admin;```
-```REVOKE ALL PRIVILEGES ON SCHEMA public FROM doc_app;```
-```DROP ROLE doc_admin;```
-```DROP ROLE doc_app;```
-
 
 #### Flyway standalone or sbt (for database management)
 
@@ -136,30 +126,9 @@ Or via brew:
  
 ```brew install flyway```
 
-```flyway -configFile=./data/flyway.conf clean -X```
+```flyway clean -X```
 
-```flyway -configFile=./data/flyway.conf migrate -X```
-
-#### To run in command line on the chef hosts
-
-Make sure the following artifact is already on the devlanes OPS-Chef-dev: 
-```
-  "services": {
-    "doc-document-backend": {
-      "context": "/documents",
-      "classifier": "assembly",
-      "version": "0.0.1-SNAPSHOT",
-      "repository": "snapshots",
-      "group": "/com/rocketlawyer",
-      "github": "doc-document-backend",
-      "type": "web",
-      "listen_port": 9002,
-      "health_uri": "documents/v1/health-check",
-      "health_match": "UP",
-      "jvm_options": "-Dhttp.port=9001 -DDATABASE_URL_DB=jdbc:postgresql://10.1.100.95:5432/rldev8?currentSchema=doc_answer -DUSER_DB=postgres -DUSER_PASSWORD=postgres -Dpidfile.path=/var/run/rlservices/rl-answers-backend.pid"
-    }
-  }
-```
+```flyway migrate -X```
 
 Then run the following commands: 
 
@@ -176,82 +145,6 @@ Then run the following commands:
 Also we want ran the process once the port.txt was deleted: 
 
 ```sudo service rl-answers-backend start```
-
-#### Swagger Support
-
-https://github.com/swagger-api/swagger-play/tree/master/play-2.5/swagger-play2
-
-We need to compile and publish locally this version to have swagger
-being generated on play 2.5
-
-#### Swagger Support UI
-
-Clone this project: https://github.com/rocketlawyer/swagger-ui/blob/master/dist/index.html
-
-Then open the following url: file:///Users/mgomez/code/swagger-ui/dist/index.html
-
-#### Swagger Support UI Cross CORS Filter
-
-```curl -I "http://localhost:9000/documents/v1/swagger"```  (we should see cors filter to support swagger)
-
-```
-HTTP/1.1 200 OK
-Request-Time: 164
-Content-Length: 9799
-Access-Control-Allow-Origin: *
-Access-Control-Allow-Headers: Referrer, User-Agent, Cache-Control, Pragma, Date, Authorization, api_key, Accept, Content-Type, Origin, X-Json, X-Prototype-Version, X-Requested-With
-Access-Control-Allow-Methods: PATCH, OPTIONS, GET, POST, PUT, DELETE, HEAD
-Access-Control-Expose-Headers: WWW-Authenticate, Server-Authorization, Location
-Access-Control-Allow-Credentials: true
-Content-Type: application/json
-Connection: close
-Date: Fri, 12 Aug 2016 07:18:51 GMT
-```
-
-#### Test Coverage Report
-
-Add the plugin in project/plugins.sbt:
-
-```addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.3.5")```
-
-Run the tests with enabled coverage:
-
-```sbt clean coverage test```
-
-Or if you have integration tests as well:
-
-```sbt clean coverage it:test```
-
-To enable coverage directly in your build, use:
-
-```coverageEnabled := true```
-
-To generate the coverage reports run: 
-
-```sbt coverageReport```
-
-#### Postgres locally
-
-```SHOW hba_file;``` where is my configuration file, also can be via docker postgres
-   
-For CentOS to install properly the hstore and ltree extension for postgres 
-cause is vanilla installation on dev lanes: 
-
-```yum install postgresql94-contrib.x86_64```
-
-or via ```apt get install postgresql94-contrib.x86_64``` depending the host distribution
-
-
-Also the pg_hba.conf shown by ```SHOW hba_file;``` use 0.0.0.0/0
-as the following: 
-
-host    all             all             0.0.0.0/0            md5
-
-Make sure the listen_addresses in postgresql.conf allows all incoming connections as well:
-
-listen_addresses = '*'
-
-After the changes you have to reload the configuration (as a superuser): ```SELECT pg_reload_conf();```
 
 #### How to generate Docker Image
 

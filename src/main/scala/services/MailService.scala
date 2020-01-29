@@ -37,13 +37,21 @@ class MailerClientTalachitas @Inject() (config: Configuration,
 
 class MailerService @Inject() (config: Configuration, mailerClient: MailerClientTalachitas) {
 
-  val resourcesDirectory: String = config.get[String]("talachitas.env") match {
+  final val resourcesDirectory: String = config.get[String]("talachitas.env") match {
     case "local" => config.get[String]("talachitas.home.conf.local")
     case "prod" => config.get[String]("talachitas.home.conf.prod")
     case _ => throw new RuntimeException("Not found variable for 'talachitas.env' either local or prod for 'talachitas.home.conf'")
   }
 
-  def sendEmailHtml(subject: String, from: String, to: Seq[String], bodyHtml: String) = {
+  private final val verifyEmailTemplate : String = scala.io.Source.fromFile(resourcesDirectory + "templatesDirectory" + "/emailVerification.html").getLines().mkString
+
+  final val talachitasDomainBackend: String = config.get[String]("talachitas.env") match {
+    case "local" => config.get[String]("talachitas.home.backend.app.protocol.local") + config.get[String]("talachitas.home.backend.app.local")
+    case "prod" => config.get[String]("talachitas.home.backend.app.protocol.prod") + config.get[String]("talachitas.home.backend.app.prod")
+    case _ => throw new RuntimeException("Not found variable for 'talachitas.env' either local or prod for 'talachitas.home.backend.app.protocal'")
+  }
+
+  private def sendEmailHtml(subject: String, from: String, to: Seq[String], bodyHtml: String) = {
 
     //how to send Seq[("", "")]
     val (x: String, y: String) = ("Content-type", "text/html")
@@ -66,9 +74,10 @@ class MailerService @Inject() (config: Configuration, mailerClient: MailerClient
     mailerClient.send(email)
   }
 
-  def sendTemplateHtml(): String = {
-    val emailTemplate: String = scala.io.Source.fromFile(resourcesDirectory + "templatesDirectory" + "/emailVerification.html").getLines().mkString
-    val replaceVariables = emailTemplate.replaceAll("<codeMessage></codeMessage>", "This is your email for verification")
-    this.sendEmailHtml("Verification Email", "talachitasus@gmail.com", Seq("mauricio.gomez.77@gmail.com"),  replaceVariables)
+  def sendVerifyEmail(subject: String, sender: String, to: String, admin: String, welcomeMessage: String, verifyLinkWithToken: String): String = {
+    val replaceVariables = verifyEmailTemplate
+      .replaceAll("<welcomeMessage />", welcomeMessage)
+      .replaceAll("verifyEmailLink.html", talachitasDomainBackend + verifyLinkWithToken)
+    this.sendEmailHtml(subject, sender, Seq(to, admin),  replaceVariables)
   }
 }
