@@ -8,22 +8,22 @@ import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import play.mvc.Http.HeaderNames
-import services.{MailerService, MetricsService}
+import services.{MailerService, MetricsService, RedirectService}
 import utilities.Util
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 
 class UserController @Inject()(cc: ControllerComponents,
-                               users: Users,
+                               usersService: Users,
                                authService: AuthService,
                                config: Configuration,
                                metricsService: MetricsService,
                                mailerService: MailerService,
+                               redirectService: RedirectService,
                                util: Util)
                               (implicit context: ExecutionContext) extends AbstractController(cc) {
 
@@ -35,9 +35,9 @@ class UserController @Inject()(cc: ControllerComponents,
 
       val (user, passwordPlain) = authService.decodeBasicAuth(basicHeader)
 
-      //val password = util.getSha256(passwordPlain)
+      val password = authService.getSha256(passwordPlain)
 
-      users.retrieveUser(user, passwordPlain) map { userOpt =>
+      usersService.retrieveUser(user, password) map { userOpt =>
         //todo: check type of user admin or regular user. and return token
 
         userOpt map { user =>
@@ -59,29 +59,61 @@ class UserController @Inject()(cc: ControllerComponents,
 
   }
 
-  def verifyEmail(verifyToken: String) = Action.async { implicit request =>
+  def verifyEmail = Action.async { implicit request =>
+
+    val body: AnyContent = request.body
+    val urlEncodedBody: Option[JsValue] = body.asJson
+
+    urlEncodedBody.map { json =>
+
+      val verifyToken: String = (json \ "verifyEmailToken").as[String].filter(_ != "")
 
       authService.validateEmailJwt(verifyToken) match {
+
         case Success(claim) => {
+
           val emailToValidate: String = (Json.parse(claim.content) \ "email").as[String]
-          users.verifyUser(emailToValidate).flatMap { userExist =>
-            userExist match {
-              case true => {
-                //users.addUser()
-                //here made the update
-                Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"User already exists"))).withHeaders(util.headers: _*))
+          val passwordToValidate: String = (Json.parse(claim.content) \ "password").as[String]
+          val languageToValidate: String = (Json.parse(claim.content) \ "language").as[String]
+
+          usersService.retrieveUser(emailToValidate, passwordToValidate) map { userOpt =>
+
+            userOpt map { user =>
+
+              if (user.verifyEmail.getOrElse(false) == true) {
+//                Redirect(redirectService.redirect(Some(languageToValidate), Some("app"), redirectService.KEY_FAILURE_PAGE))
+//                  .withHeaders(("message", "Your email has already been verify"))
+//                  .withHeaders(util.headers: _*)
+                BadRequest(Json.toJson(Error(BAD_REQUEST, s"Your email has already been verify"))).withHeaders(util.headers: _*)
+              } else {
+
+                val resultUpdate: Int = usersService.updateVerifyEmail(user.email.getOrElse(""), user.verifyEmailRetry.getOrElse(0))
+                resultUpdate match {
+                  case 1 =>
+//                    Redirect(redirectService.redirect(Some(languageToValidate), Some("app"), redirectService.KEY_SUCCESS_PAGE))
+//                      .withHeaders(("message", "Update Email Verified correctly"))
+//                      .withHeaders(util.headers: _*)
+                    Ok("Update Email Verified correctly").withHeaders(util.headers: _*)
+                  case _ =>
+
+//                    Redirect(redirectService.redirect(Some(languageToValidate), Some("app"), redirectService.KEY_FAILURE_PAGE))
+//                      .withHeaders(("message", "Your email was not able to update"))
+//                      .withHeaders(util.headers: _*)
+
+                  BadRequest(Json.toJson(Error(BAD_REQUEST, s"Your email was not able to update"))).withHeaders(util.headers: _*)
+                }
               }
-              case false => {
-                Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Email do not exists or invalid"))).withHeaders(util.headers: _*))
-              }
-              case _ => {
-                Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Something strange happened"))).withHeaders(util.headers: _*))
-              }
-            }
+            } getOrElse Forbidden(Json.toJson(Error(FORBIDDEN, " User not found "))).withHeaders(util.headers: _*)
           }
         }
-        case Failure(t) => Future.successful(Results.Unauthorized(t.getMessage).withHeaders(util.headers: _*)) // token was invalid - return 401
+
+        case Failure(t) =>
+//          Future(Redirect(redirectService.redirect(Some("en"), Some("app"), redirectService.KEY_FAILURE_PAGE))
+//            .withHeaders(("message", "Not able to see this page"))
+//            .withHeaders(util.headers: _*))
+          Future(Forbidden(Json.toJson(Error(FORBIDDEN, "Token not longer valid "))).withHeaders(util.headers: _*))
       }
+    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "not well-formed"))).withHeaders(util.headers: _*))
   }
 
   def addUser = Action.async { implicit request =>
@@ -92,11 +124,13 @@ class UserController @Inject()(cc: ControllerComponents,
     urlEncodedBody.map { json =>
 
       val emailOpt: Option[String] = (json \ "email").asOpt[String].filter(_ != "")
-      val passwordOpt: Option[String] = (json \ "password").asOpt[String]
+      val passwordOptPlan: Option[String] = (json \ "password").asOpt[String]
+      val password: String = authService.getSha256(passwordOptPlan.getOrElse(""))
       val nicknameOpt: Option[String] = (json \ "nickname").asOpt[String]
       val firstNameOpt: Option[String] = (json \ "first_name").asOpt[String]
       val lastNameOpt: Option[String] = (json \ "last_name").asOpt[String]
       val phoneOpt: Option[String] = (json \ "phone").asOpt[String]
+      val languageOpt: Option[String] = (json \ "language").asOpt[String]
 
       emailOpt.map { email =>
 
@@ -104,9 +138,9 @@ class UserController @Inject()(cc: ControllerComponents,
 
           lastNameOpt.map { lastName =>
 
-            val newUser = UserIn(None, email, nicknameOpt, passwordOpt.getOrElse(""), firstName, lastName, phoneOpt, "Client")
+            val newUser = UserIn(None, email, nicknameOpt, password, firstName, lastName, phoneOpt, "Client")
 
-            users.verifyUser(email).flatMap { userExist =>
+            usersService.verifyUser(email).flatMap { userExist =>
 
               userExist match {
 
@@ -117,9 +151,9 @@ class UserController @Inject()(cc: ControllerComponents,
 
                 case false => {
 
-                  users.addUser(newUser) map { userOutbound =>
+                  usersService.addUser(newUser) map { userOutbound =>
 
-                    val emailToken: String = authService.provideTokenEmailVerification(newUser)
+                    val emailToken: String = authService.provideTokenEmailVerification(newUser, languageOpt.getOrElse("en"))
 
                     val emailTokenEncoded: String = URLEncoder.encode(emailToken, StandardCharsets.UTF_8.toString)
 
@@ -129,7 +163,7 @@ class UserController @Inject()(cc: ControllerComponents,
                       email,
                       "mauricio.gomez.77@gmail.com",
                       firstName + " " + lastName + ", you have received successfully your verify email.",
-                      "/talachitas/v1/users/verifyEmail/" + emailTokenEncoded
+                      emailTokenEncoded
                     )
 
                     Ok(s"User ${userOutbound.get.email.getOrElse("")} created").withHeaders(util.headers: _*)

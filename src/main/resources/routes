@@ -34,8 +34,8 @@ PATCH  /noqueue/v1/reservations/:id                   controllers.ReservationCon
 POST  /talachitas/v1/contacts                      controllers.ContactController.addContact
 GET   /talachitas/v1/contacts                      controllers.ContactController.listContacts
 OPTIONS   /talachitas/v1/contacts                      controllers.OptionsController.options
-OPTIONS   /talachitas/v1/contacts/:email                      controllers.OptionsController.optionsString(email: String)
 DELETE /talachitas/v1/contacts/:email                     controllers.ContactController.deleteContact(email: String)
+OPTIONS   /talachitas/v1/contacts/:email                      controllers.OptionsController.optionsString(email: String)
 
 GET /talachitas/v1/contacts/ping                     controllers.ContactController.ping
 
@@ -45,8 +45,8 @@ OPTIONS  /talachitas/v1/login/profile                   controllers.OptionsContr
 POST     /talachitas/v1/users                       controllers.UserController.addUser
 OPTIONS  /talachitas/v1/users                       controllers.OptionsController.options
 
-GET      /talachitas/v1/users/verifyEmail/:verify                       controllers.UserController.verifyEmail(verify: String)
-OPTIONS  /talachitas/v1/users/verifyEmail/:verify                       controllers.OptionsController.optionsString(verify: String)
+POST      /talachitas/v1/users/verifyEmail                       controllers.UserController.verifyEmail
+OPTIONS   /talachitas/v1/users/verifyEmail                       controllers.OptionsController.options
 
 # Home page
 GET     /                           controllers.Application.index

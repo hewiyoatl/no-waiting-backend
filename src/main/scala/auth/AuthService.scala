@@ -212,11 +212,13 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
 
   }
 
-  def provideTokenEmailVerification(userIn: UserIn): String = {
+  def provideTokenEmailVerification(userIn: UserIn, language: String): String = {
 
-    val message =    s"""{"email":"${userIn.email}",
+    val message =    s""" {"email":"${userIn.email}",
                           |"first_name":"${userIn.firstName}",
                           |"last_name":"${userIn.lastName}",
+                          |"password":"${userIn.password}",
+                          |"language":"${language}",
                           |"roles": "${userIn.roles}",
                           |"exp": ${(new DateTime()).plusDays(expirationEmailVerification).getMillis},
                           |"iat": ${System.currentTimeMillis()}}""".stripMargin
