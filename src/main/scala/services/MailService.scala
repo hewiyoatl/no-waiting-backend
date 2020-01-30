@@ -35,7 +35,9 @@ class MailerClientTalachitas @Inject() (config: Configuration,
   }
 }
 
-class MailerService @Inject() (config: Configuration, mailerClient: MailerClientTalachitas) {
+class MailerService @Inject() (config: Configuration,
+                               mailerClient: MailerClientTalachitas,
+                               redirectService: RedirectService) {
 
   final val resourcesDirectory: String = config.get[String]("talachitas.env") match {
     case "local" => config.get[String]("talachitas.home.conf.local")
@@ -44,12 +46,6 @@ class MailerService @Inject() (config: Configuration, mailerClient: MailerClient
   }
 
   private final val verifyEmailTemplate : String = scala.io.Source.fromFile(resourcesDirectory + "templatesDirectory" + "/emailVerification.html").getLines().mkString
-
-  final val talachitasDomainBackend: String = config.get[String]("talachitas.env") match {
-    case "local" => config.get[String]("talachitas.home.backend.app.protocol.local") + config.get[String]("talachitas.home.backend.app.local")
-    case "prod" => config.get[String]("talachitas.home.backend.app.protocol.prod") + config.get[String]("talachitas.home.backend.app.prod")
-    case _ => throw new RuntimeException("Not found variable for 'talachitas.env' either local or prod for 'talachitas.home.backend.app.protocal'")
-  }
 
   private def sendEmailHtml(subject: String, from: String, to: Seq[String], bodyHtml: String) = {
 
@@ -77,7 +73,7 @@ class MailerService @Inject() (config: Configuration, mailerClient: MailerClient
   def sendVerifyEmail(subject: String, sender: String, to: String, admin: String, welcomeMessage: String, verifyLinkWithToken: String): String = {
     val replaceVariables = verifyEmailTemplate
       .replaceAll("<welcomeMessage />", welcomeMessage)
-      .replaceAll("verifyEmailLink.html", talachitasDomainBackend + verifyLinkWithToken)
+      .replaceAll("verifyEmailLink.html", redirectService.ENGLISH_DOMAIN_APP + "verifyEmail.html?emailVerification=" + verifyLinkWithToken)
     this.sendEmailHtml(subject, sender, Seq(to, admin),  replaceVariables)
   }
 }

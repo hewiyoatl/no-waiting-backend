@@ -7,7 +7,9 @@ import slick.jdbc.JdbcProfile
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 case class UserIn(id: Option[Long],
                   email: String,
@@ -25,7 +27,11 @@ case class UserOutbound(id: Option[Long],
                         lastName: Option[String],
                         phoneNumber: Option[String],
                         roles: Option[List[String]],
-                        bearerToken: Option[String])
+                        bearerToken: Option[String],
+                        verifyEmail: Option[Boolean],
+                        verifyEmailRetry: Option[Int],
+                        verifyPhone: Option[Boolean],
+                        verifyPhoneRetry: Option[Int])
 
 class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
                       customizedSlickConfig: CustomizedSlickConfig)
@@ -47,6 +53,15 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 //    ))
 //  }
 
+  def updateVerifyEmail(email: String, retryEmail: Int): Int = {
+
+    val future: Future[Int] = db.run(users.filter(u => u.email === email).map(user => (user.verifyEmail, user.retryEmail)).update((Some(true), Some(retryEmail))))
+
+    val g = Await.result(future, 10 seconds)
+
+    g
+  }
+
   def addUser(user: UserIn): Future[Option[UserOutbound]] = {
 
     db.run(
@@ -60,6 +75,10 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
       Option(user.lastName),
       user.phoneNumber,
       Option(List(user.roles)),
+      None,
+      None,
+      None,
+      None,
       None)))
   }
 
@@ -74,7 +93,11 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
         user.firstName,
         user.lastName,
         user.phoneNumber,
-        user.roles
+        user.roles,
+        user.verifyEmail,
+        user.retryEmail,
+        user.verifyPhone,
+        user.retryPhone
       )).result.map(
       _.headOption.map {
         case (
@@ -84,7 +107,11 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
           firstName,
           lastName,
           phoneNumber,
-          roles) =>
+          roles,
+          verifyEmail,
+          retryEmail,
+          verifyPhone,
+          retryPhone) =>
           UserOutbound(
             id,
             Option(email),
@@ -93,11 +120,13 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             Option(lastName),
             phoneNumber,
             Option(List(roles)),
-            None
-          )
+            None,
+            verifyEmail,
+            retryEmail,
+            verifyPhone,
+            retryPhone)
       }
     ))
-
   }
 
   def verifyUser(email: String): Future[Boolean] = {
@@ -105,7 +134,12 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
     db.run(users.filter(u => u.email === email).exists.result)
   }
 
-//  def deleteContact(email: String): Future[Int] = {
+  def verifyUserVerification(email: String): Future[Boolean] = {
+
+    db.run(users.filter(u => u.email === email && u.verifyEmail.getOrElse(false) == true).exists.result)
+  }
+
+  //  def deleteContact(email: String): Future[Int] = {
 //
 //    db.run(users.filter(_.email === email).delete)
 //  }
@@ -129,6 +163,14 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
     def lastName = column[String]("l_name")
 
     def phoneNumber = column[Option[String]]("phone")
-  }
 
+    def verifyEmail = column[Option[Boolean]]("verify_email")
+
+    def verifyPhone = column[Option[Boolean]]("verify_phone")
+
+    def retryEmail = column[Option[Int]]("retry_email")
+
+    def retryPhone = column[Option[Int]]("retry_phone")
+
+  }
 }
