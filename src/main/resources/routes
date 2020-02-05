@@ -48,6 +48,16 @@ OPTIONS  /talachitas/v1/users                       controllers.OptionsControlle
 POST      /talachitas/v1/users/verifyEmail                       controllers.UserController.verifyEmail
 OPTIONS   /talachitas/v1/users/verifyEmail                       controllers.OptionsController.options
 
+POST      /talachitas/v1/users/retryVerifyEmail                       controllers.UserController.retryVerifyEmail
+OPTIONS   /talachitas/v1/users/retryVerifyEmail                       controllers.OptionsController.options
+
+POST      /talachitas/v1/users/resetAccount                       controllers.UserController.resetAccount
+OPTIONS   /talachitas/v1/users/resetAccount                       controllers.OptionsController.options
+
+POST      /talachitas/v1/users/resetAccountWithPass                       controllers.UserController.resetAccountWithPassword
+OPTIONS   /talachitas/v1/users/resetAccountWithPass                       controllers.OptionsController.options
+
+
 # Home page
 GET     /                           controllers.Application.index
 GET     /callback                   controllers.Callback.callback(code: Option[String])

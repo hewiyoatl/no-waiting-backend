@@ -37,6 +37,7 @@ class MailerClientTalachitas @Inject() (config: Configuration,
 
 class MailerService @Inject() (config: Configuration,
                                mailerClient: MailerClientTalachitas,
+                               encryptDecryptService: EncryptDecryptService,
                                redirectService: RedirectService) {
 
   final val resourcesDirectory: String = config.get[String]("talachitas.env") match {
@@ -44,8 +45,13 @@ class MailerService @Inject() (config: Configuration,
     case "prod" => config.get[String]("talachitas.home.conf.prod")
     case _ => throw new RuntimeException("Not found variable for 'talachitas.env' either local or prod for 'talachitas.home.conf'")
   }
+  private final val adminEmail: String = encryptDecryptService.decrypt(config.get[String]("play.mailer.admin"))
+
+  private final val senderEmail: String = encryptDecryptService.decrypt(config.get[String]("play.mailer.user"))
 
   private final val verifyEmailTemplate : String = scala.io.Source.fromFile(resourcesDirectory + "templatesDirectory" + "/emailVerification.html").getLines().mkString
+
+  private final val resetAccountTemplate : String = scala.io.Source.fromFile(resourcesDirectory + "templatesDirectory" + "/resetAccount.html").getLines().mkString
 
   private def sendEmailHtml(subject: String, from: String, to: Seq[String], bodyHtml: String) = {
 
@@ -70,10 +76,17 @@ class MailerService @Inject() (config: Configuration,
     mailerClient.send(email)
   }
 
-  def sendVerifyEmail(subject: String, sender: String, to: String, admin: String, welcomeMessage: String, verifyLinkWithToken: String): String = {
+  def sendVerifyEmail(subject: String, to: String, welcomeMessage: String, verifyLinkWithToken: String): String = {
     val replaceVariables = verifyEmailTemplate
       .replaceAll("<welcomeMessage />", welcomeMessage)
       .replaceAll("verifyEmailLink.html", redirectService.ENGLISH_DOMAIN_APP + "verifyEmail.html?emailVerification=" + verifyLinkWithToken)
-    this.sendEmailHtml(subject, sender, Seq(to, admin),  replaceVariables)
+    this.sendEmailHtml(subject, senderEmail, Seq(to, adminEmail),  replaceVariables)
+  }
+
+  def sendResetAccount(subject: String, to: String, welcomeMessage: String, resetAccountWithToken: String): String = {
+    val replaceVariables = resetAccountTemplate
+      .replaceAll("<welcomeMessage />", welcomeMessage)
+      .replaceAll("resetAccountLink.html", redirectService.ENGLISH_DOMAIN_APP + "resetAccountLink.html?resetAccountVerification=" + resetAccountWithToken)
+    this.sendEmailHtml(subject, senderEmail, Seq(to, adminEmail),  replaceVariables)
   }
 }

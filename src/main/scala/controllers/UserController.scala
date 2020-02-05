@@ -1,5 +1,8 @@
 package controllers
 
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+
 import auth.AuthService
 import formatter.{Error, ErrorFormatter}
 import javax.inject.Inject
@@ -13,8 +16,6 @@ import utilities.Util
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 
 class UserController @Inject()(cc: ControllerComponents,
@@ -42,13 +43,15 @@ class UserController @Inject()(cc: ControllerComponents,
 
         userOpt map { user =>
 
-          val token = authService.provideToken(user)
-
-          Ok(token).withHeaders(util.headers: _*)
-
-        } getOrElse (Forbidden(Json.toJson(Error(FORBIDDEN, "Unauthorized user")))
+          if (user.verifyEmail.getOrElse(false) == true) {
+            val token = authService.provideTokenLogin(user)
+            Ok(token).withHeaders(util.headers: _*)
+          } else {
+            BadRequest(Json.toJson(Error(BAD_REQUEST, "User has not verify his/her email")))
+              .withHeaders(util.headers: _*)
+          }
+        } getOrElse (Forbidden(Json.toJson(Error(FORBIDDEN, "Unauthorized user or Invalid combinations user / password")))
           .withHeaders(util.headers: _*))
-
       }
 
     } getOrElse {
@@ -56,6 +59,112 @@ class UserController @Inject()(cc: ControllerComponents,
       Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Missing authorization header")))
         .withHeaders(util.headers: _*))
     }
+
+  }
+
+  def resetAccount = Action.async { implicit request =>
+
+    val body: AnyContent = request.body
+    val urlEncodedBody: Option[JsValue] = body.asJson
+
+    urlEncodedBody.map { json =>
+
+      val email: String = (json \ "email").as[String].filter(_ != "")
+      val languageOpt: String = (json \ "language").as[String].filter(_ != "")
+
+      usersService.retrieveUser(email) map { userOpt =>
+
+        userOpt map { user =>
+
+          //if we got the user.
+
+          //we need to update their retry and verify email to false
+
+          val verifyEmailRetries = Some(user.verifyEmailRetry.getOrElse(0) + 1)
+
+          usersService.updateVerifyEmail(user.email.getOrElse(""), Some(false), verifyEmailRetries)
+
+          val newUser = UserIn(None, user.email.getOrElse(""), user.nickname, "", user.firstName.getOrElse(""), user.lastName.getOrElse(""), user.phoneNumber, "Client")
+
+          sendEmailResetAccount(newUser, languageOpt)
+
+          Ok("You will be receiving an email shortly to reset your account.").withHeaders(util.headers: _*)
+
+        } getOrElse BadRequest(Json.toJson(Error(BAD_REQUEST, " User not found "))).withHeaders(util.headers: _*)
+      }
+
+    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Not received body correctly"))).withHeaders(util.headers: _*))
+
+  }
+
+  def resetAccountWithPassword = Action.async { implicit request =>
+
+    val body: AnyContent = request.body
+    val urlEncodedBody: Option[JsValue] = body.asJson
+
+    urlEncodedBody.map { json =>
+
+      val resetAccountToken: String = (json \ "resetAccountToken").as[String].filter(_ != "")
+      val password: String = (json \ "password").as[String].filter(_ != "")
+      val languageOpt: String = (json \ "language").as[String].filter(_ != "")
+
+      authService.validateResetAccountJwt(resetAccountToken) match {
+
+        case Success(claim) => {
+
+          val email: String = (Json.parse(claim.content) \ "email").as[String]
+
+          val result : Int = usersService.updateVerifyEmailAndPassword(authService.getSha256(password), email, Some(true), Some(0))
+
+          result match {
+            case 1 => Future(Ok("Your account has been updated correctly, please login").withHeaders(util.headers: _*))
+            case _ => Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Account was not updated correctly"))).withHeaders(util.headers: _*))
+          }
+        }
+
+        case _ => {
+          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"This token for reset account is not valid"))).withHeaders(util.headers: _*))
+        }
+      }
+
+    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Not received body correctly"))).withHeaders(util.headers: _*))
+
+  }
+
+  def retryVerifyEmail = Action.async { implicit request =>
+
+    val body: AnyContent = request.body
+    val urlEncodedBody: Option[JsValue] = body.asJson
+
+
+    urlEncodedBody.map { json =>
+
+      val email: String = (json \ "email").as[String].filter(_ != "")
+      val languageOpt: String = (json \ "language").as[String].filter(_ != "")
+
+      usersService.retrieveUser(email) map { userOpt =>
+
+        userOpt map { user =>
+
+          if (user.verifyEmail.getOrElse(false) == true) {
+            BadRequest(Json.toJson(Error(BAD_REQUEST, "This user already verified his/her email"))).withHeaders(util.headers: _*)
+          } else {
+
+            val retryEmailCount = Some(user.verifyEmailRetry.getOrElse(1))
+
+            usersService.updateVerifyEmail(email, Some(false), retryEmailCount)
+
+            val newUser = UserIn(None, user.email.getOrElse(""), user.nickname, "", user.firstName.getOrElse(""), user.lastName.getOrElse(""), user.phoneNumber, "Client")
+
+            sendEmailVerification(newUser, languageOpt)
+
+            Ok("You will be receiving an email shortly").withHeaders(util.headers: _*)
+          }
+
+        } getOrElse BadRequest(Json.toJson(Error(BAD_REQUEST, " User not found "))).withHeaders(util.headers: _*)
+      }
+
+    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Not received body correctly"))).withHeaders(util.headers: _*))
 
   }
 
@@ -73,10 +182,10 @@ class UserController @Inject()(cc: ControllerComponents,
         case Success(claim) => {
 
           val emailToValidate: String = (Json.parse(claim.content) \ "email").as[String]
-          val passwordToValidate: String = (Json.parse(claim.content) \ "password").as[String]
+//          val passwordToValidate: String = (Json.parse(claim.content) \ "password").as[String]
           val languageToValidate: String = (Json.parse(claim.content) \ "language").as[String]
 
-          usersService.retrieveUser(emailToValidate, passwordToValidate) map { userOpt =>
+          usersService.retrieveUser(emailToValidate) map { userOpt =>
 
             userOpt map { user =>
 
@@ -87,7 +196,8 @@ class UserController @Inject()(cc: ControllerComponents,
                 BadRequest(Json.toJson(Error(BAD_REQUEST, s"Your email has already been verify"))).withHeaders(util.headers: _*)
               } else {
 
-                val resultUpdate: Int = usersService.updateVerifyEmail(user.email.getOrElse(""), user.verifyEmailRetry.getOrElse(0))
+                //finally verify and put the count retries to zero
+                val resultUpdate: Int = usersService.updateVerifyEmail(user.email.getOrElse(""), Some(true), Some(0))
                 resultUpdate match {
                   case 1 =>
 //                    Redirect(redirectService.redirect(Some(languageToValidate), Some("app"), redirectService.KEY_SUCCESS_PAGE))
@@ -114,6 +224,34 @@ class UserController @Inject()(cc: ControllerComponents,
           Future(Forbidden(Json.toJson(Error(FORBIDDEN, "Token not longer valid "))).withHeaders(util.headers: _*))
       }
     } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "not well-formed"))).withHeaders(util.headers: _*))
+  }
+
+  def sendEmailVerification(newUser: UserIn, language: String): Unit = {
+
+    val emailToken: String = authService.provideTokenEmailVerification(newUser, language)
+
+    val emailTokenEncoded: String = URLEncoder.encode(emailToken, StandardCharsets.UTF_8.toString)
+
+    mailerService.sendVerifyEmail(
+      "Talachitas.com - Verify Email " + newUser.firstName + " " + newUser.lastName,
+      newUser.email,
+      newUser.firstName + " " + newUser.lastName + ", you have received successfully your verify email.",
+      emailTokenEncoded
+    )
+  }
+
+  def sendEmailResetAccount(newUser: UserIn, language: String): Unit = {
+
+    val emailResetToken: String = authService.provideTokenResetAccount(newUser, language)
+
+    val emailTokenEncoded: String = URLEncoder.encode(emailResetToken, StandardCharsets.UTF_8.toString)
+
+    mailerService.sendResetAccount(
+      "Talachitas.com - Reset Account " + newUser.firstName + " " + newUser.lastName,
+      newUser.email,
+      newUser.firstName + " " + newUser.lastName + ", you have received your reset account details.",
+      emailTokenEncoded
+    )
   }
 
   def addUser = Action.async { implicit request =>
@@ -153,18 +291,7 @@ class UserController @Inject()(cc: ControllerComponents,
 
                   usersService.addUser(newUser) map { userOutbound =>
 
-                    val emailToken: String = authService.provideTokenEmailVerification(newUser, languageOpt.getOrElse("en"))
-
-                    val emailTokenEncoded: String = URLEncoder.encode(emailToken, StandardCharsets.UTF_8.toString)
-
-                    mailerService.sendVerifyEmail(
-                      "Talachitas.com - Verify Email " + firstName + " " + lastName,
-                      "talachitasus@gmail.com",
-                      email,
-                      "mauricio.gomez.77@gmail.com",
-                      firstName + " " + lastName + ", you have received successfully your verify email.",
-                      emailTokenEncoded
-                    )
+                    sendEmailVerification(newUser, languageOpt.getOrElse("en"))
 
                     Ok(s"User ${userOutbound.get.email.getOrElse("")} created").withHeaders(util.headers: _*)
                   }

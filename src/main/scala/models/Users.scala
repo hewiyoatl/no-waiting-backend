@@ -1,13 +1,12 @@
 package models
 
 import com.google.inject.Inject
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -34,8 +33,11 @@ case class UserOutbound(id: Option[Long],
                         verifyPhoneRetry: Option[Int])
 
 class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
+                      config: Configuration,
                       customizedSlickConfig: CustomizedSlickConfig)
   extends HasDatabaseConfigProviderTalachitas[JdbcProfile] {
+
+  val timeoutDatabaseSeconds = config.get[Duration]("talachitas.dbs.timeout")
 
   val logger: Logger = Logger(this.getClass())
 
@@ -53,11 +55,20 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 //    ))
 //  }
 
-  def updateVerifyEmail(email: String, retryEmail: Int): Int = {
+  def updateVerifyEmail(email: String, verifyEmail: Option[Boolean], retryEmail: Option[Int]): Int = {
 
-    val future: Future[Int] = db.run(users.filter(u => u.email === email).map(user => (user.verifyEmail, user.retryEmail)).update((Some(true), Some(retryEmail))))
+    val future: Future[Int] = db.run(users.filter(u => u.email === email).map(user => (user.verifyEmail, user.retryEmail)).update(verifyEmail, retryEmail))
 
-    val g = Await.result(future, 10 seconds)
+    val g = Await.result(future, timeoutDatabaseSeconds)
+
+    g
+  }
+
+  def updateVerifyEmailAndPassword(password: String, email: String, verifyEmail: Option[Boolean], retryEmail: Option[Int]): Int = {
+
+    val future: Future[Int] = db.run(users.filter(u => u.email === email).map(user => (user.password, user.verifyEmail, user.retryEmail)).update(password, verifyEmail, retryEmail))
+
+    val g = Await.result(future, timeoutDatabaseSeconds)
 
     g
   }
@@ -86,6 +97,52 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
   def retrieveUser(email: String, password: String): Future[Option[UserOutbound]] = {
 
     db.run(users.filter(u => u.email === email && u.password === password).map(user =>
+      (
+        user.id,
+        user.email,
+        user.nickname,
+        user.firstName,
+        user.lastName,
+        user.phoneNumber,
+        user.roles,
+        user.verifyEmail,
+        user.retryEmail,
+        user.verifyPhone,
+        user.retryPhone
+      )).result.map(
+      _.headOption.map {
+        case (
+          id,
+          email,
+          nickname,
+          firstName,
+          lastName,
+          phoneNumber,
+          roles,
+          verifyEmail,
+          retryEmail,
+          verifyPhone,
+          retryPhone) =>
+          UserOutbound(
+            id,
+            Option(email),
+            nickname,
+            Option(firstName),
+            Option(lastName),
+            phoneNumber,
+            Option(List(roles)),
+            None,
+            verifyEmail,
+            retryEmail,
+            verifyPhone,
+            retryPhone)
+      }
+    ))
+  }
+
+  def retrieveUser(email: String): Future[Option[UserOutbound]] = {
+
+    db.run(users.filter(u => u.email === email).map(user =>
       (
         user.id,
         user.email,

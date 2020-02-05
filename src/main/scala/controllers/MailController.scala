@@ -25,8 +25,6 @@ class MailController @Inject()(cc: ControllerComponents)
     Future(Ok("Email sent ! " +
       mailService.sendVerifyEmail(
         "subject",
-        "talachitasus@gmail.com",
-        "mauricio.gomez.77@gmail.com",
         "mauricio.gomez.77@gmail.com",
         "welcome message",
         "link?123123")))

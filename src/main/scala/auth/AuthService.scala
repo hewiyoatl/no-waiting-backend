@@ -137,6 +137,21 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
     }
   }
 
+  private val validateResetAccountClaims = (claims: JwtClaim) => {
+
+    val reset: Option[String] = (Json.parse(claims.content) \ "reset").asOpt[String]
+    val email: Option[String] = (Json.parse(claims.content) \ "email").asOpt[String]
+
+    //
+    //    val isUser: Boolean = roles.map(_.contains("User")).getOrElse(false)
+
+    if (claims.expiration.get > System.currentTimeMillis || reset.getOrElse("no") == "yes" || email.getOrElse("") != "") {
+      Success(claims)
+    } else {
+      Failure(new Exception("Token expired or this is not a reset token"))
+    }
+  }
+
   // Validates a JWT and potentially returns the claims if the token was
   // successfully parsed and validated
   def validateUserJwt(token: String): Try[JwtClaim] = for {
@@ -155,6 +170,15 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
     claims <- JwtJson.decode(token, publicKey, Seq(JwtAlgorithm.ES512)) // Decode the token using the secret key
 
     _ <- validateEmailsClaims(claims) // validate the data stored inside the token
+  } yield claims
+
+  def validateResetAccountJwt(token: String): Try[JwtClaim] = for {
+
+    //    jwk <- getJwk(token) // Get the secret key for this token
+
+    claims <- JwtJson.decode(token, publicKey, Seq(JwtAlgorithm.ES512)) // Decode the token using the secret key
+
+    _ <- validateResetAccountClaims(claims) // validate the data stored inside the token
   } yield claims
 
   def validateAdminJwt(token: String): Try[JwtClaim] = for {
@@ -176,6 +200,7 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
 
   private def expiration = config.get[Int]("auth.expiration")
   private def expirationEmailVerification = config.get[Int]("auth.expirationVerifyEmails")
+  private def expirationResetAccount      = config.get[Int]("auth.expirationResetAccount")
 
   // Your Auth0 audience, read from configuration
   //  private def audience = config.get[String]("auth0.audience")
@@ -187,7 +212,7 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
   // Your Auth0 domain, read from configuration
   //  private def domain = config.get[String]("auth0.domain")
 
-  def provideToken(user: UserOutbound): JsObject = {
+  def provideTokenLogin(user: UserOutbound): JsObject = {
 
     val message =      s"""{"email":"${user.email.getOrElse("")}",
                           |"first_name":"${user.firstName.getOrElse("")}",
@@ -217,10 +242,27 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
     val message =    s""" {"email":"${userIn.email}",
                           |"first_name":"${userIn.firstName}",
                           |"last_name":"${userIn.lastName}",
-                          |"password":"${userIn.password}",
                           |"language":"${language}",
                           |"roles": "${userIn.roles}",
                           |"exp": ${(new DateTime()).plusDays(expirationEmailVerification).getMillis},
+                          |"iat": ${System.currentTimeMillis()}}""".stripMargin
+
+    val token = Jwt.encode(message,
+      privateKey,
+      JwtAlgorithm.ES512)
+
+    token
+  }
+
+  def provideTokenResetAccount(userIn: UserIn, language: String): String = {
+
+    val message =    s""" {"email":"${userIn.email}",
+                          |"first_name":"${userIn.firstName}",
+                          |"last_name":"${userIn.lastName}",
+                          |"reset": "yes",
+                          |"language":"${language}",
+                          |"roles": "${userIn.roles}",
+                          |"exp": ${(new DateTime()).plusDays(expirationResetAccount).getMillis},
                           |"iat": ${System.currentTimeMillis()}}""".stripMargin
 
     val token = Jwt.encode(message,
