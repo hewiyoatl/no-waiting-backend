@@ -5,28 +5,36 @@ import javax.inject.Inject
 import models.{RestUser, RestUsers}
 import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.mvc._
+import services.{CustomizedLanguageService, LanguageAction}
+import utilities.Util
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class RestUserController @Inject()(cc: ControllerComponents, restUsers: RestUsers)
-                                  (implicit context: ExecutionContext) extends AbstractController(cc) {
+                                  (implicit context: ExecutionContext,
+                                   interMessage: CustomizedLanguageService,
+                                   languageAction: LanguageAction,
+                                   util: Util) extends AbstractController(cc) {
 
   implicit val RestUserReader = RestUserFormatter.RestUserReader
 
   implicit val RestUserWriter = RestUserFormatter.RestUserWriter
 
-  implicit val errorWriter = ErrorFormatter.errorWriter
+  implicit val errorWriter = ErrorMessageFormatter.errorWriter
 
-  def listRestUsers = Action.async { implicit request =>
+  implicit val successWriter = SuccessMessageFormatter.successWriter
+
+  def listRestUsers = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     restUsers.listAll map { restUsers =>
-
-      Ok(Json.toJson(restUsers))
+      val listRestUsers:Option[String] = Some(Json.stringify(Json.toJson(restUsers)))
+      val message: String = interMessage.customizedLanguageMessage(language, "restuser.list.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, listRestUsers))).withHeaders(util.headersCors: _*)
     }
-
   }
 
-  def addRestUser = Action.async { implicit request =>
-
+  def addRestUser = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
 
@@ -48,31 +56,39 @@ class RestUserController @Inject()(cc: ControllerComponents, restUsers: RestUser
             false)
 
           restUsers.add(newRestUser) map { restUser =>
-
-            Created(Json.toJson(restUser))
+            val restUserString:Option[String] = Some(Json.stringify(Json.toJson(restUser)))
+            val message: String = interMessage.customizedLanguageMessage(language, "restuser.creation.success", "")
+            Created(Json.toJson(SuccessMessage(OK, message, restUserString))).withHeaders(util.headersCors: _*)
           }
         } getOrElse {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "new error"))))
+          val message: String = interMessage.customizedLanguageMessage(language, "restuser.creation.error", "")
+          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
         }
     } getOrElse {
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Error"))))
+      val message: String = interMessage.customizedLanguageMessage(language, "restuser.body.error", "")
+      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
     }
   }
 
-  def deleteRestUser(id: Long) = Action.async { implicit request =>
+  def deleteRestUser(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     restUsers.delete(id)
-    Future(NoContent)
+    val message: String = interMessage.customizedLanguageMessage(language, "restuser.delete.success", "")
+    Future(Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*))
   }
 
-  def retrieveRestUser(id: Long) = Action.async { implicit request =>
+  def retrieveRestUser(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     restUsers.retrieveRestUser(id) map { restUser =>
-
-      Ok(Json.toJson(restUser))
+      val restUserString:Option[String] = Some(Json.stringify(Json.toJson(restUser)))
+      val message: String = interMessage.customizedLanguageMessage(language, "restuser.retrieve.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, restUserString))).withHeaders(util.headersCors: _*)
     }
   }
 
-  def patchRestUser(id: Long) = Action.async { implicit request =>
+  def patchRestUser(id: Long) = languageAction.async { implicit request =>
 
+    val language: String = request.acceptLanguages.head.code
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
 
@@ -94,15 +110,17 @@ class RestUserController @Inject()(cc: ControllerComponents, restUsers: RestUser
             false)
 
           restUsers.patchRestUser(patchRestUser) map { restUser =>
-
-            Ok(Json.toJson(restUser))
+            val restUserString:Option[String] = Some(Json.stringify(Json.toJson(restUser)))
+            val message: String = interMessage.customizedLanguageMessage(language, "restuser.update.success", "")
+            Ok(Json.toJson(SuccessMessage(OK, message, restUserString))).withHeaders(util.headersCors: _*)
           }
         } getOrElse {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "new error"))))
+          val message: String = interMessage.customizedLanguageMessage(language, "restuser.update.error", "")
+          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
         }
     } getOrElse {
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Error"))))
+      val message: String = interMessage.customizedLanguageMessage(language, "restuser.body.error", "")
+      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
     }
   }
-
 }

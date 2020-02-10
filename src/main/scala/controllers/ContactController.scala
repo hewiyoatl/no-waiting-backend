@@ -7,7 +7,7 @@ import models.{ContactTable, Contacts}
 import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.mvc._
-import services.{MetricsService, RedirectService}
+import services.{CustomizedLanguageService, LanguageAction, MetricsService, RedirectService}
 import utilities.Util
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -19,32 +19,37 @@ class ContactController @Inject()(cc: ControllerComponents, contactss: Contacts)
                                   metricsService: MetricsService,
                                   authUserAction: AuthUserAction,
                                   authAdminAction: AuthAdminAction,
+                                  languageAction: LanguageAction,
                                   config: Configuration,
                                   redirectService: RedirectService,
+                                  interMessage: CustomizedLanguageService,
                                   util: Util) extends AbstractController(cc) {
 
   implicit val contactReader = ContactFormatter.ContactReader
 
   implicit val contactWriter = ContactFormatter.ContactWriter
 
-  implicit val errorWriter = ErrorFormatter.errorWriter
+  implicit val errorWriter = ErrorMessageFormatter.errorWriter
 
-  def ping = authUserAction.async { implicit request =>
+  implicit val successWriter = SuccessMessageFormatter.successWriter
 
-    Future(Ok("Hello, Scala!"))
+  def ping = languageAction.andThen(authUserAction).async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
+    Future(Ok("Hello, Scala! " + language))
   }
 
-  def listContacts = authAdminAction.async { implicit request =>
-
+  def listContacts = languageAction.andThen(authAdminAction).async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     contactss.listContacts map { contacts =>
-
-      Ok(Json.toJson(contacts)).withHeaders(util.headersCors: _*)
+      val listContacts:Option[String] = Some(Json.stringify(Json.toJson(contacts)))
+      val message: String = interMessage.customizedLanguageMessage(language, "contact.list.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, listContacts))).withHeaders(util.headersCors: _*)
     }
-
   }
 
-  def addContact = Action.async { implicit request =>
+  def addContact = languageAction.async { implicit request =>
 
+    val language: String = request.acceptLanguages.head.code
     val body: AnyContent = request.body
     val urlEncodedBody: Option[Map[String, Seq[String]]] = body.asFormUrlEncoded
 
@@ -67,20 +72,17 @@ class ContactController @Inject()(cc: ControllerComponents, contactss: Contacts)
         }
 
       } getOrElse {
-
         Future(Redirect(redirectService.redirect(languageOpt, appOrStaticOpt, redirectService.KEY_FAILURE_PAGE)))
       }
-
     } getOrElse {
-
       Future(Redirect(redirectService.redirect(Some(redirectService.DEFAULT_LANGUAGE), Some(redirectService.DEFAULT_APP_OR_STATIC), redirectService.KEY_FAILURE_PAGE)))
     }
   }
 
-  def deleteContact(email: String) = authAdminAction.async { implicit request =>
-
+  def deleteContact(email: String) = languageAction.andThen(authAdminAction).async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     contactss.deleteContact(email)
-    Future(NoContent.withHeaders(util.headersCors: _*))
+    val message: String = interMessage.customizedLanguageMessage(language, "contact.delete.success", "")
+    Future(Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*))
   }
-
 }

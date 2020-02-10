@@ -5,7 +5,7 @@ import play.api.i18n.{Lang, MessagesApi}
 
 class CustomizedLanguageService @Inject()(messagesApi: MessagesApi)  {
 
-  def customizedLanguageMessage(language: String, messageCode: String, params: String): String = {
+  def customizedLanguageMessage(language: String, messageCode: String, params: String*): String = {
     messagesApi(messageCode, params)(Lang(language))
   }
 

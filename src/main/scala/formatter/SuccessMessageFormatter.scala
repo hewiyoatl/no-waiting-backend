@@ -3,14 +3,14 @@ package formatter
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Writes, JsPath}
 
-case class Success(code: Int, message: String, data: Option[String])
+case class SuccessMessage(code: Int, message: String, data: Option[String])
 
-object SuccessFormatter {
+object SuccessMessageFormatter {
 
-  val successWriter: Writes[Success] = (
+  val successWriter: Writes[SuccessMessage] = (
     (JsPath \ "code").write[Int] and
       (JsPath \ "message").write[String] and
       (JsPath \ "data").writeNullable[String]
-    )(unlift(Success.unapply))
+    )(unlift(SuccessMessage.unapply))
 
 }
