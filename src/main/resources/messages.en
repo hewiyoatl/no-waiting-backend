@@ -1,2 +1,8 @@
-###### default configuration for all countries if nothing is specify
-welcome.index=Welcome {0}!.
+client.list.success=List of clients
+client.creation.success=Client created successfully
+client.creation.error=There was an error adding a client manager
+client.body.error=Request body not parse correctly
+client.delete.success=Your client was deleted correctly
+client.retrieve.success=Your client was deleted correctly
+client.update.success=Client updated successfully
+client.update.error=Client was updated correctly

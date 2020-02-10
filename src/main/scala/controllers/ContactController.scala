@@ -38,7 +38,7 @@ class ContactController @Inject()(cc: ControllerComponents, contactss: Contacts)
 
     contactss.listContacts map { contacts =>
 
-      Ok(Json.toJson(contacts)).withHeaders(util.headers: _*)
+      Ok(Json.toJson(contacts)).withHeaders(util.headersCors: _*)
     }
 
   }
@@ -80,7 +80,7 @@ class ContactController @Inject()(cc: ControllerComponents, contactss: Contacts)
   def deleteContact(email: String) = authAdminAction.async { implicit request =>
 
     contactss.deleteContact(email)
-    Future(NoContent.withHeaders(util.headers: _*))
+    Future(NoContent.withHeaders(util.headersCors: _*))
   }
 
 }

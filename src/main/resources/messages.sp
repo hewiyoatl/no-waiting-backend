@@ -1,2 +1,1 @@
-###### default configuration for all countries if nothing is specify
-welcome.index=Bienvenido {0}!.
+users.list.success=Lista de usuarios

@@ -14,11 +14,15 @@ class OptionsController @Inject()(cc: ControllerComponents, contactss: Contacts)
                                   metricsService: MetricsService,
                                   util: Util) extends AbstractController(cc) {
 
-  def options = Action { request =>
-    NoContent.withHeaders(util.headers : _*)
+  def options = Action {
+    NoContent.withHeaders(util.headersCors : _*)
   }
 
-  def optionsString(email: String) = Action { request =>
-    NoContent.withHeaders(util.headers : _*)
+  def optionsString(email: String) = Action {
+    NoContent.withHeaders(util.headersCors : _*)
+  }
+
+  def optionsLong(id: Long) = Action {
+    NoContent.withHeaders(util.headersCors : _*)
   }
 }

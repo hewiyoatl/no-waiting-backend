@@ -45,19 +45,19 @@ class UserController @Inject()(cc: ControllerComponents,
 
           if (user.verifyEmail.getOrElse(false) == true) {
             val token = authService.provideTokenLogin(user)
-            Ok(token).withHeaders(util.headers: _*)
+            Ok(token).withHeaders(util.headersCors: _*)
           } else {
             BadRequest(Json.toJson(Error(BAD_REQUEST, "User has not verify his/her email")))
-              .withHeaders(util.headers: _*)
+              .withHeaders(util.headersCors: _*)
           }
         } getOrElse (Forbidden(Json.toJson(Error(FORBIDDEN, "Unauthorized user or Invalid combinations user / password")))
-          .withHeaders(util.headers: _*))
+          .withHeaders(util.headersCors: _*))
       }
 
     } getOrElse {
 
       Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Missing authorization header")))
-        .withHeaders(util.headers: _*))
+        .withHeaders(util.headersCors: _*))
     }
 
   }
@@ -88,12 +88,12 @@ class UserController @Inject()(cc: ControllerComponents,
 
           sendEmailResetAccount(newUser, languageOpt)
 
-          Ok("You will be receiving an email shortly to reset your account.").withHeaders(util.headers: _*)
+          Ok("You will be receiving an email shortly to reset your account.").withHeaders(util.headersCors: _*)
 
-        } getOrElse BadRequest(Json.toJson(Error(BAD_REQUEST, " User not found "))).withHeaders(util.headers: _*)
+        } getOrElse BadRequest(Json.toJson(Error(BAD_REQUEST, " User not found "))).withHeaders(util.headersCors: _*)
       }
 
-    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Not received body correctly"))).withHeaders(util.headers: _*))
+    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Not received body correctly"))).withHeaders(util.headersCors: _*))
 
   }
 
@@ -117,17 +117,17 @@ class UserController @Inject()(cc: ControllerComponents,
           val result : Int = usersService.updateVerifyEmailAndPassword(authService.getSha256(password), email, Some(true), Some(0))
 
           result match {
-            case 1 => Future(Ok("Your account has been updated correctly, please login").withHeaders(util.headers: _*))
-            case _ => Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Account was not updated correctly"))).withHeaders(util.headers: _*))
+            case 1 => Future(Ok("Your account has been updated correctly, please login").withHeaders(util.headersCors: _*))
+            case _ => Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Account was not updated correctly"))).withHeaders(util.headersCors: _*))
           }
         }
 
         case _ => {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"This token for reset account is not valid"))).withHeaders(util.headers: _*))
+          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"This token for reset account is not valid"))).withHeaders(util.headersCors: _*))
         }
       }
 
-    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Not received body correctly"))).withHeaders(util.headers: _*))
+    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Not received body correctly"))).withHeaders(util.headersCors: _*))
 
   }
 
@@ -147,7 +147,7 @@ class UserController @Inject()(cc: ControllerComponents,
         userOpt map { user =>
 
           if (user.verifyEmail.getOrElse(false) == true) {
-            BadRequest(Json.toJson(Error(BAD_REQUEST, "This user already verified his/her email"))).withHeaders(util.headers: _*)
+            BadRequest(Json.toJson(Error(BAD_REQUEST, "This user already verified his/her email"))).withHeaders(util.headersCors: _*)
           } else {
 
             val retryEmailCount = Some(user.verifyEmailRetry.getOrElse(1))
@@ -158,13 +158,13 @@ class UserController @Inject()(cc: ControllerComponents,
 
             sendEmailVerification(newUser, languageOpt)
 
-            Ok("You will be receiving an email shortly").withHeaders(util.headers: _*)
+            Ok("You will be receiving an email shortly").withHeaders(util.headersCors: _*)
           }
 
-        } getOrElse BadRequest(Json.toJson(Error(BAD_REQUEST, " User not found "))).withHeaders(util.headers: _*)
+        } getOrElse BadRequest(Json.toJson(Error(BAD_REQUEST, " User not found "))).withHeaders(util.headersCors: _*)
       }
 
-    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Not received body correctly"))).withHeaders(util.headers: _*))
+    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"Not received body correctly"))).withHeaders(util.headersCors: _*))
 
   }
 
@@ -193,7 +193,7 @@ class UserController @Inject()(cc: ControllerComponents,
 //                Redirect(redirectService.redirect(Some(languageToValidate), Some("app"), redirectService.KEY_FAILURE_PAGE))
 //                  .withHeaders(("message", "Your email has already been verify"))
 //                  .withHeaders(util.headers: _*)
-                BadRequest(Json.toJson(Error(BAD_REQUEST, s"Your email has already been verify"))).withHeaders(util.headers: _*)
+                BadRequest(Json.toJson(Error(BAD_REQUEST, s"Your email has already been verify"))).withHeaders(util.headersCors: _*)
               } else {
 
                 //finally verify and put the count retries to zero
@@ -203,17 +203,17 @@ class UserController @Inject()(cc: ControllerComponents,
 //                    Redirect(redirectService.redirect(Some(languageToValidate), Some("app"), redirectService.KEY_SUCCESS_PAGE))
 //                      .withHeaders(("message", "Update Email Verified correctly"))
 //                      .withHeaders(util.headers: _*)
-                    Ok("Update Email Verified correctly").withHeaders(util.headers: _*)
+                    Ok("Update Email Verified correctly").withHeaders(util.headersCors: _*)
                   case _ =>
 
 //                    Redirect(redirectService.redirect(Some(languageToValidate), Some("app"), redirectService.KEY_FAILURE_PAGE))
 //                      .withHeaders(("message", "Your email was not able to update"))
 //                      .withHeaders(util.headers: _*)
 
-                  BadRequest(Json.toJson(Error(BAD_REQUEST, s"Your email was not able to update"))).withHeaders(util.headers: _*)
+                  BadRequest(Json.toJson(Error(BAD_REQUEST, s"Your email was not able to update"))).withHeaders(util.headersCors: _*)
                 }
               }
-            } getOrElse Forbidden(Json.toJson(Error(FORBIDDEN, " User not found "))).withHeaders(util.headers: _*)
+            } getOrElse Forbidden(Json.toJson(Error(FORBIDDEN, " User not found "))).withHeaders(util.headersCors: _*)
           }
         }
 
@@ -221,9 +221,9 @@ class UserController @Inject()(cc: ControllerComponents,
 //          Future(Redirect(redirectService.redirect(Some("en"), Some("app"), redirectService.KEY_FAILURE_PAGE))
 //            .withHeaders(("message", "Not able to see this page"))
 //            .withHeaders(util.headers: _*))
-          Future(Forbidden(Json.toJson(Error(FORBIDDEN, "Token not longer valid "))).withHeaders(util.headers: _*))
+          Future(Forbidden(Json.toJson(Error(FORBIDDEN, "Token not longer valid "))).withHeaders(util.headersCors: _*))
       }
-    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "not well-formed"))).withHeaders(util.headers: _*))
+    } getOrElse Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "not well-formed"))).withHeaders(util.headersCors: _*))
   }
 
   def sendEmailVerification(newUser: UserIn, language: String): Unit = {
@@ -284,7 +284,7 @@ class UserController @Inject()(cc: ControllerComponents,
 
                 case true => {
 
-                  Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"User ${email} already exists"))).withHeaders(util.headers: _*))
+                  Future(BadRequest(Json.toJson(Error(BAD_REQUEST, s"User ${email} already exists"))).withHeaders(util.headersCors: _*))
                 }
 
                 case false => {
@@ -293,7 +293,7 @@ class UserController @Inject()(cc: ControllerComponents,
 
                     sendEmailVerification(newUser, languageOpt.getOrElse("en"))
 
-                    Ok(s"User ${userOutbound.get.email.getOrElse("")} created").withHeaders(util.headers: _*)
+                    Ok(s"User ${userOutbound.get.email.getOrElse("")} created").withHeaders(util.headersCors: _*)
                   }
 
                 }
@@ -304,22 +304,22 @@ class UserController @Inject()(cc: ControllerComponents,
 
           } getOrElse {
 
-            Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "last name not defined"))).withHeaders(util.headers: _*))
+            Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "last name not defined"))).withHeaders(util.headersCors: _*))
           }
 
         } getOrElse {
 
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "first name not defined"))).withHeaders(util.headers: _*))
+          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "first name not defined"))).withHeaders(util.headersCors: _*))
         }
 
       } getOrElse {
 
-        Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "email not defined"))).withHeaders(util.headers: _*))
+        Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "email not defined"))).withHeaders(util.headersCors: _*))
       }
 
     } getOrElse {
 
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "not well-formed"))).withHeaders(util.headers: _*))
+      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "not well-formed"))).withHeaders(util.headersCors: _*))
     }
   }
 }

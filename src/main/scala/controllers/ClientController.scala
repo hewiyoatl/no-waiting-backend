@@ -1,14 +1,15 @@
 package controllers
 
+import formatter._
 import javax.inject.Inject
-import formatter.{Error, ErrorFormatter, UserFormatter, UserInbound}
 import model.Clients
 import play.api.Configuration
 import play.api.cache.SyncCacheApi
-import play.api.libs.json.{JsResult, JsValue, Json}
+import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc._
-import services.MetricsService
+import services.{CustomizedLanguageService, MetricsService}
+import utilities.Util
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -18,7 +19,9 @@ class ClientController @Inject()(cc: ControllerComponents, users: Clients)
                                  metricsService: MetricsService,
                                  wsClient: WSClient,
                                  env: play.api.Environment,
-                                 cache: SyncCacheApi) extends AbstractController(cc) {
+                                 cache: SyncCacheApi,
+                                 interMessage: CustomizedLanguageService,
+                                 util: Util) extends AbstractController(cc) {
 
   implicit val userReader = UserFormatter.UserReader
 
@@ -26,12 +29,19 @@ class ClientController @Inject()(cc: ControllerComponents, users: Clients)
 
   implicit val errorWriter = ErrorFormatter.errorWriter
 
+  implicit val successWriter = SuccessFormatter.successWriter
+
   def listUsers = Action.async { implicit request =>
     users.listAll map { users =>
-
-      Ok(Json.toJson(users))
+      val listUsers:Option[String] = Some(Json.stringify(Json.toJson(users)))
+//      val successResponse: JsObject = Json.toJson(Success(OK, "List of users", tt)).as[JsObject]
+      //https://stackoverflow.com/questions/17596809/how-to-merge-a-jsvalue-to-jsobject-in-flat-level/36795978
+      //val usersResponse: JsObject = Json.toJson(users).as[JsObject]
+//      val usersResponse:JsArray = Json.toJson(users).as[JsArray]
+//      val asSeqOfJsObjects:Seq[JsObject] = usersResponse.value.map(_.as[JsObject]) ++ Seq(successResponse)
+      val message: String = interMessage.customizedLanguageMessage("en", "client.list.success", "")
+      Ok(Json.toJson(Success(OK, message, listUsers))).withHeaders(util.headersCors: _*)
     }
-
   }
 
   def addUser = Action.async { implicit request =>
@@ -55,26 +65,32 @@ class ClientController @Inject()(cc: ControllerComponents, users: Clients)
             false)
 
           users.add(newUser) map { user =>
+            val userString:Option[String] = Some(Json.stringify(Json.toJson(user)))
 
-            Created(Json.toJson(user))
+            val message: String = interMessage.customizedLanguageMessage("en", "client.creation.success", "")
+            Created(Json.toJson(Success(OK, message, userString))).withHeaders(util.headersCors: _*)
           }
         } getOrElse {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "new error"))))
+          val message: String = interMessage.customizedLanguageMessage("en", "client.creation.error", "")
+          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
         }
     } getOrElse {
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Error"))))
+      val message: String = interMessage.customizedLanguageMessage("en", "client.body.error", "")
+      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
     }
   }
 
   def deleteUser(id: Long) = Action.async { implicit request =>
     users.delete(id)
-    Future(NoContent)
+    val message: String = interMessage.customizedLanguageMessage("en", "client.delete.success", "")
+    Future(Ok(Json.toJson(Success(OK, message, None))).withHeaders(util.headersCors: _*))
   }
 
   def retrieveUser(id: Long) = Action.async { implicit request =>
     users.retrieveClient(id) map { user =>
-
-      Ok(Json.toJson(user))
+      val userString:Option[String] = Some(Json.stringify(Json.toJson(user)))
+      val message: String = interMessage.customizedLanguageMessage("en", "client.retrieve.success", "")
+      Ok(Json.toJson(Success(OK, message, userString))).withHeaders(util.headersCors: _*)
     }
   }
 
@@ -99,15 +115,17 @@ class ClientController @Inject()(cc: ControllerComponents, users: Clients)
             false)
 
           users.patchClient(patchUser) map { user =>
-
-            Ok(Json.toJson(user))
+            val userString:Option[String] = Some(Json.stringify(Json.toJson(user)))
+            val message: String = interMessage.customizedLanguageMessage("en", "client.update.success", "")
+            Ok(Json.toJson(Success(OK, message, userString))).withHeaders(util.headersCors: _*)
           }
         } getOrElse {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "new error"))))
+          val message: String = interMessage.customizedLanguageMessage("en", "client.update.error", "")
+          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, message))))
         }
     } getOrElse {
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Error"))))
+      val message: String = interMessage.customizedLanguageMessage("en", "client.body.error", "")
+      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, message))))
     }
   }
-
 }
