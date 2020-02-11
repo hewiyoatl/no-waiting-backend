@@ -1,2 +1,77 @@
-###### default configuration for all countries if nothing is specify
-welcome.index=Welcome {0}!.
+############ client messages
+contact.list.success=List of contacts
+contact.delete.success=Your contact was deleted correctly
+############ client messages
+client.list.success=List of clients
+client.creation.success=Client created successfully
+client.creation.error=There was an error adding a client manager
+client.body.error=Client body request not parse correctly
+client.delete.success=Your client was deleted correctly
+client.retrieve.success=Your client was retrieve correctly
+client.update.success=Client updated successfully
+client.update.error=Client unable to updated
+############ reservation messages
+reservation.list.success=List of reservations
+reservation.creation.success=Reservation created successfully
+reservation.creation.error=There was an error adding a reservation
+reservation.body.error=Reservation body request not parse correctly
+reservation.delete.success=Your reservation was deleted correctly
+reservation.retrieve.success=Your reservation was retrieve correctly
+reservation.update.success=Reservation updated successfully
+reservation.update.error=Reservation unable to updated
+############ restaurant messages
+restaurant.list.success=List of restaurants
+restaurant.creation.success=Restaurant created successfully
+restaurant.creation.error=There was an error adding a restaurant
+restaurant.body.error=Restaurant body request not parse correctly
+restaurant.delete.success=Your restaurant was deleted correctly
+restaurant.retrieve.success=Your restaurant was retrieve correctly
+restaurant.update.success=Restaurant updated successfully
+restaurant.update.error=Restaurant unable to updated
+############ restaurant users messages
+restuser.list.success=List of restaurant users
+restuser.creation.success=Restaurant user created successfully
+restuser.creation.error=There was an error adding a restaurant user
+restuser.body.error=Restaurant user body request not parse correctly
+restuser.delete.success=Your restaurant user was deleted correctly
+restuser.retrieve.success=Your restaurant user was retrieve correctly
+restuser.update.success=Restaurant user updated successfully
+restuser.update.error=Restaurant user unable to updated
+############ user talachitas login
+user.login.success=User generated login credentials successfully
+user.login.error.email=User has not verify his/her email
+user.login.error.invalid.password.account=Unauthorized user or Invalid combinations user / password
+user.login.error.auth.header.missing=Missing authorization header for login
+############ user reset account talachitas
+user.reset.account.check.email=You will be receiving an email shortly to reset your account
+user.reset.account.not.found=Your user is not in our records
+user.reset.account.body.error=User body request not parse correctly
+user.reset.account.with.password.success=Your account has been updated correctly, you can login now
+user.reset.account.with.password.error=Account was not updated correctly, please try again later or call support
+user.reset.account.with.password.token.error=This token for reset your account is not longer valid, you can renew one 
+user.reset.account.with.password.body.error=User body reset account request not parse correctly
+############ user verify email send notification to user
+user.retry.verify.email.already.verified=This user already verified his/her email, please log in or request a new reset token
+user.retry.verify.email.success=You will be receiving an email shortly to verify your email
+user.retry.verify.email.user.not.found=This user was not found in our records, please verify
+user.retry.verify.email.body.error=User body verify email request not parse correctly
+############ user verify email update database
+user.verify.email.already.verified=This user already verified his/her email, please log in or request a new reset token
+user.verify.email.success=Your email has been verified correctly, please login
+user.verify.email.error=Your email was not able to update, please call support
+user.verify.email.user.not.found=This user was not found in our records, please verify
+user.verify.email.token.error=This token for verify your email is not longer valid, you can renew one
+user.verify.email.body.error=User body verify email request not parse correctly
+############ user adding user
+user.add.already.exists=User {0} already exists
+user.add.success=User {0} was created successfully
+user.add.field.lastname=Last name is missing
+user.add.field.firstname=First name is missing
+user.add.field.email=Email is missing
+user.add.body.error=User body request not parse correctly
+########### send email verification
+user.send.email.verification.subject=Talachitas.com - Verify Email {0} {1}
+user.send.email.verification.body={0} {1}, you have received your verification email
+########### reset account email
+user.send.email.reset.subject=Talachitas.com - Reset Account {0} {1}
+user.send.email.reset.body={0} {1}, you have received your reset account details

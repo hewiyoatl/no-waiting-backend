@@ -1,46 +1,59 @@
 ### to measure metrics by endpoint
 ## https://github.com/kenshoo/metrics-play
-GET     /admin/metrics              com.kenshoo.play.metrics.MetricsController.metrics
+GET     /talachitas/admin/metrics                          com.kenshoo.play.metrics.MetricsController.metrics
 
 # Home page
-GET     /noqueue/v1/users                       controllers.ClientController.listUsers
-POST    /noqueue/v1/users                       controllers.ClientController.addUser
-DELETE  /noqueue/v1/users/:id            controllers.ClientController.deleteUser(id : Long)
-GET     /noqueue/v1/users/:id                   controllers.ClientController.retrieveUser(id: Long)
-PATCH  /noqueue/v1/users/:id                   controllers.ClientController.patchUser(id: Long)
+GET       /talachitas/noqueue/v1/users                       controllers.ClientController.listUsers
+POST      /talachitas/noqueue/v1/users                       controllers.ClientController.addUser
+OPTIONS   /talachitas/noqueue/v1/users                       controllers.OptionsController.options
+
+DELETE    /talachitas/noqueue/v1/users/:id                   controllers.ClientController.deleteUser(id : Long)
+GET       /talachitas/noqueue/v1/users/:id                   controllers.ClientController.retrieveUser(id: Long)
+PATCH     /talachitas/noqueue/v1/users/:id                   controllers.ClientController.patchUser(id: Long)
+OPTIONS   /talachitas/noqueue/v1/users/:id                   controllers.OptionsController.optionsLong(id: Long)
 
 ## Restaurants endpoints
-GET     /noqueue/v1/restaurants                       controllers.RestaurantController.listRestaurants
-POST    /noqueue/v1/restaurants                       controllers.RestaurantController.addRestaurant
-DELETE  /noqueue/v1/restaurants/:id            controllers.RestaurantController.deleteRestaurant(id : Long)
-GET     /noqueue/v1/restaurants/:id                   controllers.RestaurantController.retrieveRestaurant(id: Long)
-PATCH  /noqueue/v1/restaurants/:id                   controllers.RestaurantController.patchRestaurant(id: Long)
+GET       /talachitas/noqueue/v1/restaurants                       controllers.RestaurantController.listRestaurants
+POST      /talachitas/noqueue/v1/restaurants                       controllers.RestaurantController.addRestaurant
+OPTIONS   /talachitas/noqueue/v1/restaurants                       controllers.OptionsController.options
+
+DELETE    /talachitas/noqueue/v1/restaurants/:id                   controllers.RestaurantController.deleteRestaurant(id : Long)
+GET       /talachitas/noqueue/v1/restaurants/:id                   controllers.RestaurantController.retrieveRestaurant(id: Long)
+PATCH     /talachitas/noqueue/v1/restaurants/:id                   controllers.RestaurantController.patchRestaurant(id: Long)
+OPTIONS   /talachitas/noqueue/v1/restaurants/:id                   controllers.OptionsController.optionsLong(id: Long)
 
 ## Rest Users points
-GET     /noqueue/v1/rest-users                       controllers.RestUserController.listRestUsers
-POST    /noqueue/v1/rest-users                       controllers.RestUserController.addRestUser
-DELETE  /noqueue/v1/rest-users/:id            controllers.RestUserController.deleteRestUser(id : Long)
-GET     /noqueue/v1/rest-users/:id                   controllers.RestUserController.retrieveRestUser(id: Long)
-PATCH  /noqueue/v1/rest-users/:id                   controllers.RestUserController.patchRestUser(id: Long)
+GET       /talachitas/noqueue/v1/rest-users                       controllers.RestUserController.listRestUsers
+POST      /talachitas/noqueue/v1/rest-users                       controllers.RestUserController.addRestUser
+OPTIONS   /talachitas/noqueue/v1/rest-users                       controllers.OptionsController.options
+
+DELETE    /talachitas/noqueue/v1/rest-users/:id                    controllers.RestUserController.deleteRestUser(id : Long)
+GET       /talachitas/noqueue/v1/rest-users/:id                    controllers.RestUserController.retrieveRestUser(id: Long)
+PATCH     /talachitas/noqueue/v1/rest-users/:id                    controllers.RestUserController.patchRestUser(id: Long)
+OPTIONS   /talachitas/noqueue/v1/rest-users/:id                    controllers.OptionsController.optionsLong(id: Long)
 
 ## Reservation endpoints
-GET     /noqueue/v1/reservations                       controllers.ReservationController.listReservations(location: Option[Long])
-POST    /noqueue/v1/reservations                       controllers.ReservationController.addReservation
-DELETE  /noqueue/v1/reservations/:id            controllers.ReservationController.deleteReservation(id : Long)
-GET     /noqueue/v1/reservations/:id                   controllers.ReservationController.retrieveReservation(id: Long)
-PATCH  /noqueue/v1/reservations/:id                   controllers.ReservationController.patchReservation(id: Long)
+GET       /talachitas/noqueue/v1/reservations                       controllers.ReservationController.listReservations(location: Option[Long])
+POST      /talachitas/noqueue/v1/reservations                       controllers.ReservationController.addReservation
+OPTIONS   /talachitas/noqueue/v1/reservations                       controllers.OptionsController.options
+
+DELETE    /talachitas/noqueue/v1/reservations/:id                   controllers.ReservationController.deleteReservation(id : Long)
+GET       /talachitas/noqueue/v1/reservations/:id                   controllers.ReservationController.retrieveReservation(id: Long)
+PATCH     /talachitas/noqueue/v1/reservations/:id                   controllers.ReservationController.patchReservation(id: Long)
+OPTIONS   /talachitas/noqueue/v1/reservations/:id                   controllers.OptionsController.optionsLong(id: Long)
 
 ## This is to create contacts in our page
-POST  /talachitas/v1/contacts                      controllers.ContactController.addContact
-GET   /talachitas/v1/contacts                      controllers.ContactController.listContacts
+POST      /talachitas/v1/contacts                      controllers.ContactController.addContact
+GET       /talachitas/v1/contacts                      controllers.ContactController.listContacts
 OPTIONS   /talachitas/v1/contacts                      controllers.OptionsController.options
-DELETE /talachitas/v1/contacts/:email                     controllers.ContactController.deleteContact(email: String)
+
+DELETE    /talachitas/v1/contacts/:email                     controllers.ContactController.deleteContact(email: String)
 OPTIONS   /talachitas/v1/contacts/:email                      controllers.OptionsController.optionsString(email: String)
 
-GET /talachitas/v1/contacts/ping                     controllers.ContactController.ping
+GET       /talachitas/v1/contacts/ping                     controllers.ContactController.ping
 
-GET      /talachitas/v1/login/profile                   controllers.UserController.profile
-OPTIONS  /talachitas/v1/login/profile                   controllers.OptionsController.options
+GET      /talachitas/v1/users/login                   controllers.UserController.login
+OPTIONS  /talachitas/v1/users/login                   controllers.OptionsController.options
 
 POST     /talachitas/v1/users                       controllers.UserController.addUser
 OPTIONS  /talachitas/v1/users                       controllers.OptionsController.options
@@ -48,8 +61,8 @@ OPTIONS  /talachitas/v1/users                       controllers.OptionsControlle
 POST      /talachitas/v1/users/verifyEmail                       controllers.UserController.verifyEmail
 OPTIONS   /talachitas/v1/users/verifyEmail                       controllers.OptionsController.options
 
-POST      /talachitas/v1/users/retryVerifyEmail                       controllers.UserController.retryVerifyEmail
-OPTIONS   /talachitas/v1/users/retryVerifyEmail                       controllers.OptionsController.options
+POST      /talachitas/v1/users/retryVerifyEmailSendNotification                       controllers.UserController.retryVerifyEmailSendNotification
+OPTIONS   /talachitas/v1/users/retryVerifyEmailSendNotification                       controllers.OptionsController.options
 
 POST      /talachitas/v1/users/resetAccount                       controllers.UserController.resetAccount
 OPTIONS   /talachitas/v1/users/resetAccount                       controllers.OptionsController.options
@@ -82,3 +95,8 @@ GET /talachitas/v1/encrypt/:plaintext           controllers.EncryptDecryptContro
 ### remember to escape only the ciphertext since it is base64 containing = characters
 ### https://www.urlencoder.org/
 GET /talachitas/v1/decrypt/:ciphertext          controllers.EncryptDecryptController.decrypt(ciphertext: String)
+
+
+GET /talachitas/v1/language/:language/:messageKey  controllers.CustomizedLanguageController.language(language: String, messageKey: String)
+
+GET /talachitas/v1/language/allMessages  controllers.CustomizedLanguageController.allMessages

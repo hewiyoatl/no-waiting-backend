@@ -5,7 +5,8 @@ import javax.inject.Inject
 import models.{Reservation, Reservations}
 import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.mvc._
-import services.MetricsService
+import services.{CustomizedLanguageService, LanguageAction, MetricsService}
+import utilities.Util
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -13,24 +14,30 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ReservationController @Inject()(cc: ControllerComponents, reservations: Reservations)
                                      (implicit context: ExecutionContext,
-                                      metricsService: MetricsService) extends AbstractController(cc) {
+                                      metricsService: MetricsService,
+                                      interMessage: CustomizedLanguageService,
+                                      languageAction: LanguageAction,
+                                      util: Util) extends AbstractController(cc) {
 
   implicit val reservationReader = ReservationFormatter.ReservationReader
 
   implicit val reservationWriter = ReservationFormatter.ReservationWriter
 
-  implicit val errorWriter = ErrorFormatter.errorWriter
+  implicit val errorWriter = ErrorMessageFormatter.errorWriter
 
-  def listReservations(location: Option[Long]) = Action.async { implicit request =>
+  implicit val successWriter = SuccessMessageFormatter.successWriter
+
+  def listReservations(location: Option[Long]) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     reservations.listAll(location) map { reservations =>
-
-      Ok(Json.toJson(reservations))
+      val listReservations:Option[String] = Some(Json.stringify(Json.toJson(reservations)))
+      val message: String = interMessage.customizedLanguageMessage(language, "reservation.list.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, listReservations))).withHeaders(util.headersCors: _*)
     }
-
   }
 
-  def addReservation = Action.async { implicit request =>
-
+  def addReservation = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
 
@@ -50,31 +57,38 @@ class ReservationController @Inject()(cc: ControllerComponents, reservations: Re
             None)
 
           reservations.add(reservationUser) map { reservation =>
-
-            Created(Json.toJson(reservation))
+            val reservationString:Option[String] = Some(Json.stringify(Json.toJson(reservation)))
+            val message: String = interMessage.customizedLanguageMessage(language, "reservation.creation.success", "")
+            Created(Json.toJson(SuccessMessage(OK, message, reservationString))).withHeaders(util.headersCors: _*)
           }
         } getOrElse {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "new error"))))
+          val message: String = interMessage.customizedLanguageMessage(language, "reservation.creation.error", "")
+          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
         }
     } getOrElse {
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Error"))))
+      val message: String = interMessage.customizedLanguageMessage(language, "reservation.body.error", "")
+      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
     }
   }
 
-  def deleteReservation(id: Long) = Action.async { implicit request =>
+  def deleteReservation(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     reservations.delete(id)
-    Future(NoContent)
+    val message: String = interMessage.customizedLanguageMessage(language, "reservation.delete.success", "")
+    Future(Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*))
   }
 
-  def retrieveReservation(id: Long) = Action.async { implicit request =>
+  def retrieveReservation(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     reservations.retrieveReservation(id) map { reservation =>
-
-      Ok(Json.toJson(reservation))
+      val reservationString:Option[String] = Some(Json.stringify(Json.toJson(reservation)))
+      val message: String = interMessage.customizedLanguageMessage(language, "reservation.retrieve.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, reservationString))).withHeaders(util.headersCors: _*)
     }
   }
 
-  def patchReservation(id: Long) = Action.async { implicit request =>
-
+  def patchReservation(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
 
@@ -94,15 +108,17 @@ class ReservationController @Inject()(cc: ControllerComponents, reservations: Re
             None)
 
           reservations.patchReservation(reservationReservation) map { reservation =>
-
-            Ok(Json.toJson(reservation))
+            val reservationString:Option[String] = Some(Json.stringify(Json.toJson(reservation)))
+            val message: String = interMessage.customizedLanguageMessage(language, "reservation.update.success", "")
+            Ok(Json.toJson(SuccessMessage(OK, message, reservationString))).withHeaders(util.headersCors: _*)
           }
         } getOrElse {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "new error"))))
+          val message: String = interMessage.customizedLanguageMessage(language, "reservation.update.error", "")
+          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
         }
     } getOrElse {
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Error"))))
+      val message: String = interMessage.customizedLanguageMessage(language, "reservation.body.error", "")
+      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
     }
   }
-
 }

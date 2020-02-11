@@ -5,7 +5,8 @@ import javax.inject.Inject
 import models.{Restaurant, Restaurants}
 import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.mvc._
-import services.MetricsService
+import services.{CustomizedLanguageService, LanguageAction, MetricsService}
+import utilities.Util
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -13,24 +14,30 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Restaurants)
                                     (implicit context: ExecutionContext,
-                                     metricsService: MetricsService) extends AbstractController(cc) {
+                                     metricsService: MetricsService,
+                                     interMessage: CustomizedLanguageService,
+                                     languageAction: LanguageAction,
+                                     util: Util) extends AbstractController(cc) {
 
   implicit val restaurantReader = RestaurantFormatter.RestaurantReader
 
   implicit val restaurantWriter = RestaurantFormatter.RestaurantWriter
 
-  implicit val errorWriter = ErrorFormatter.errorWriter
+  implicit val errorWriter = ErrorMessageFormatter.errorWriter
 
-  def listRestaurants = Action.async { implicit request =>
+  implicit val successWriter = SuccessMessageFormatter.successWriter
+
+  def listRestaurants = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     restaurants.listAll map { restaurants =>
-
-      Ok(Json.toJson(restaurants))
+      val listRestaurants:Option[String] = Some(Json.stringify(Json.toJson(restaurants)))
+      val message: String = interMessage.customizedLanguageMessage(language, "restaurant.list.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, listRestaurants))).withHeaders(util.headersCors: _*)
     }
-
   }
 
-  def addRestaurant = Action.async { implicit request =>
-
+  def addRestaurant = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
 
@@ -56,32 +63,40 @@ class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Rest
             None,
             false)
 
-          restaurants.add(newRestaurant) map { user =>
-
-            Created(Json.toJson(user))
+          restaurants.add(newRestaurant) map { restaurant =>
+            val restaurantString:Option[String] = Some(Json.stringify(Json.toJson(restaurant)))
+            val message: String = interMessage.customizedLanguageMessage(language, "restaurant.creation.success", "")
+            Created(Json.toJson(SuccessMessage(OK, message, restaurantString))).withHeaders(util.headersCors: _*)
           }
         } getOrElse {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Validation of the json file failed."))))
+          val message: String = interMessage.customizedLanguageMessage(language, "restaurant.creation.error", "")
+          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
+
         }
     } getOrElse {
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Error"))))
+      val message: String = interMessage.customizedLanguageMessage(language, "restaurant.body.error", "")
+      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
     }
   }
 
-  def deleteRestaurant(id: Long) = Action.async { implicit request =>
+  def deleteRestaurant(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     restaurants.delete(id)
-    Future(NoContent)
+    val message: String = interMessage.customizedLanguageMessage(language, "restaurant.delete.success", "")
+    Future(Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*))
   }
 
-  def retrieveRestaurant(id: Long) = Action.async { implicit request =>
+  def retrieveRestaurant(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     restaurants.retrieveRestaurant(id) map { restaurant =>
-
-      Ok(Json.toJson(restaurant))
+      val restaurantString:Option[String] = Some(Json.stringify(Json.toJson(restaurant)))
+      val message: String = interMessage.customizedLanguageMessage(language, "restaurant.retrieve.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, restaurantString))).withHeaders(util.headersCors: _*)
     }
   }
 
-  def patchRestaurant(id: Long) = Action.async { implicit request =>
-
+  def patchRestaurant(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
 
@@ -108,15 +123,17 @@ class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Rest
             false)
 
           restaurants.patchRestaurant(patchRestaurant) map { restaurant =>
-
-            Ok(Json.toJson(restaurant))
+            val restaurantString:Option[String] = Some(Json.stringify(Json.toJson(restaurant)))
+            val message: String = interMessage.customizedLanguageMessage(language, "restaurant.update.success", "")
+            Ok(Json.toJson(SuccessMessage(OK, message, restaurantString))).withHeaders(util.headersCors: _*)
           }
         } getOrElse {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "new error"))))
+          val message: String = interMessage.customizedLanguageMessage(language, "restaurant.update.error", "")
+          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
         }
     } getOrElse {
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Error"))))
+      val message: String = interMessage.customizedLanguageMessage(language, "restaurant.body.error", "")
+      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
     }
   }
-
 }

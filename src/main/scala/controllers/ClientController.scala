@@ -1,14 +1,16 @@
 package controllers
 
+import auth.AuthAdminAction
+import formatter._
 import javax.inject.Inject
-import formatter.{Error, ErrorFormatter, UserFormatter, UserInbound}
 import model.Clients
 import play.api.Configuration
 import play.api.cache.SyncCacheApi
-import play.api.libs.json.{JsResult, JsValue, Json}
+import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc._
-import services.MetricsService
+import services.{CustomizedLanguageService, LanguageAction, MetricsService}
+import utilities.Util
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -18,23 +20,40 @@ class ClientController @Inject()(cc: ControllerComponents, users: Clients)
                                  metricsService: MetricsService,
                                  wsClient: WSClient,
                                  env: play.api.Environment,
-                                 cache: SyncCacheApi) extends AbstractController(cc) {
+                                 cache: SyncCacheApi,
+                                 interMessage: CustomizedLanguageService,
+                                 languageAction: LanguageAction,
+                                 authAdminAction: AuthAdminAction,
+                                 util: Util) extends AbstractController(cc) {
 
   implicit val userReader = UserFormatter.UserReader
 
   implicit val userWriter = UserFormatter.UserWriter
 
-  implicit val errorWriter = ErrorFormatter.errorWriter
+  implicit val errorWriter = ErrorMessageFormatter.errorWriter
 
-  def listUsers = Action.async { implicit request =>
+  implicit val successWriter = SuccessMessageFormatter.successWriter
+
+//      def listUsers = languageAction.andThen(authAdminAction).async {
+  def listUsers = languageAction.async {  implicit request =>
+
+    val language: String = request.acceptLanguages.head.code
+
     users.listAll map { users =>
-
-      Ok(Json.toJson(users))
+      val listUsers:Option[String] = Some(Json.stringify(Json.toJson(users)))
+//      val successResponse: JsObject = Json.toJson(Success(OK, "List of users", tt)).as[JsObject]
+      //https://stackoverflow.com/questions/17596809/how-to-merge-a-jsvalue-to-jsobject-in-flat-level/36795978
+      //val usersResponse: JsObject = Json.toJson(users).as[JsObject]
+//      val usersResponse:JsArray = Json.toJson(users).as[JsArray]
+//      val asSeqOfJsObjects:Seq[JsObject] = usersResponse.value.map(_.as[JsObject]) ++ Seq(successResponse)
+      val message: String = interMessage.customizedLanguageMessage(language, "client.list.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, listUsers))).withHeaders(util.headersCors: _*)
     }
-
   }
 
-  def addUser = Action.async { implicit request =>
+  def addUser = languageAction.async { implicit request =>
+
+    val language: String = request.acceptLanguages.head.code
 
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
@@ -55,31 +74,39 @@ class ClientController @Inject()(cc: ControllerComponents, users: Clients)
             false)
 
           users.add(newUser) map { user =>
-
-            Created(Json.toJson(user))
+            val userString:Option[String] = Some(Json.stringify(Json.toJson(user)))
+            val message: String = interMessage.customizedLanguageMessage(language, "client.creation.success", "")
+            Created(Json.toJson(SuccessMessage(OK, message, userString))).withHeaders(util.headersCors: _*)
           }
         } getOrElse {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "new error"))))
+          val message: String = interMessage.customizedLanguageMessage(language, "client.creation.error", "")
+          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
         }
     } getOrElse {
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Error"))))
+      val message: String = interMessage.customizedLanguageMessage(language, "client.body.error", "")
+      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
     }
   }
 
-  def deleteUser(id: Long) = Action.async { implicit request =>
+  def deleteUser(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     users.delete(id)
-    Future(NoContent)
+    val message: String = interMessage.customizedLanguageMessage(language, "client.delete.success", "")
+    Future(Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*))
   }
 
-  def retrieveUser(id: Long) = Action.async { implicit request =>
+  def retrieveUser(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
     users.retrieveClient(id) map { user =>
-
-      Ok(Json.toJson(user))
+      val userString:Option[String] = Some(Json.stringify(Json.toJson(user)))
+      val message: String = interMessage.customizedLanguageMessage(language, "client.retrieve.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, userString))).withHeaders(util.headersCors: _*)
     }
   }
 
-  def patchUser(id: Long) = Action.async { implicit request =>
+  def patchUser(id: Long) = languageAction.async { implicit request =>
 
+    val language: String = request.acceptLanguages.head.code
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
 
@@ -99,15 +126,17 @@ class ClientController @Inject()(cc: ControllerComponents, users: Clients)
             false)
 
           users.patchClient(patchUser) map { user =>
-
-            Ok(Json.toJson(user))
+            val userString:Option[String] = Some(Json.stringify(Json.toJson(user)))
+            val message: String = interMessage.customizedLanguageMessage(language, "client.update.success", "")
+            Ok(Json.toJson(SuccessMessage(OK, message, userString))).withHeaders(util.headersCors: _*)
           }
         } getOrElse {
-          Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "new error"))))
+          val message: String = interMessage.customizedLanguageMessage(language, "client.update.error", "")
+          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
         }
     } getOrElse {
-      Future(BadRequest(Json.toJson(Error(BAD_REQUEST, "Error"))))
+      val message: String = interMessage.customizedLanguageMessage(language, "client.body.error", "")
+      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
     }
   }
-
 }

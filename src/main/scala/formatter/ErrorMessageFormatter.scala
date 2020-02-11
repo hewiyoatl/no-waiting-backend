@@ -3,13 +3,12 @@ package formatter
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Writes, JsPath}
 
-case class Error(code: Int, message: String)
+case class ErrorMessage(code: Int, message: String)
 
-object ErrorFormatter {
+object ErrorMessageFormatter {
 
-  val errorWriter: Writes[Error] = (
+  val errorWriter: Writes[ErrorMessage] = (
     (JsPath \ "code").write[Int] and
       (JsPath \ "message").write[String]
-    )(unlift(Error.unapply))
-
+    )(unlift(ErrorMessage.unapply))
 }
