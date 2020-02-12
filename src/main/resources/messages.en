@@ -64,7 +64,7 @@ user.verify.email.token.error=This token for verify your email is not longer val
 user.verify.email.body.error=User body verify email request not parse correctly
 ############ user adding user
 user.add.already.exists=User {0} already exists
-user.add.success=User {0} was created successfully
+user.add.success=User {0} was created successfully, please validate your email now in order to login
 user.add.field.lastname=Last name is missing
 user.add.field.firstname=First name is missing
 user.add.field.email=Email is missing
