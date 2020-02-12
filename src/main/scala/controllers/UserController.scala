@@ -66,7 +66,7 @@ class UserController @Inject()(cc: ControllerComponents,
     }
   }
 
-  def resetAccount = languageAction.async { implicit request =>
+  def resetAccountSendNotification = languageAction.async { implicit request =>
 
     val language: String = request.acceptLanguages.head.code
     val body: AnyContent = request.body
@@ -75,7 +75,7 @@ class UserController @Inject()(cc: ControllerComponents,
     urlEncodedBody.map { json =>
 
       val email: String = (json \ "email").as[String].filter(_ != "")
-      val languageOpt: String = (json \ "language").as[String].filter(_ != "")
+//      val languageOpt: String = (json \ "language").as[String].filter(_ != "")
 
       usersService.retrieveUser(email) map { userOpt =>
 
@@ -91,13 +91,13 @@ class UserController @Inject()(cc: ControllerComponents,
 
           val newUser = UserIn(None, user.email.getOrElse(""), user.nickname, "", user.firstName.getOrElse(""), user.lastName.getOrElse(""), user.phoneNumber, "Client")
 
-          sendEmailResetAccount(newUser, languageOpt)
+          sendEmailResetAccount(newUser, language)
 
-          val message: String = interMessage.customizedLanguageMessage(languageOpt, "user.reset.account.check.email", "")
+          val message: String = interMessage.customizedLanguageMessage(language, "user.reset.account.check.email", "")
           Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*)
 
         } getOrElse {
-          val message: String = interMessage.customizedLanguageMessage(languageOpt, "user.reset.account.not.found", "")
+          val message: String = interMessage.customizedLanguageMessage(language, "user.reset.account.not.found", "")
           BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*)
         }
       }
@@ -107,7 +107,7 @@ class UserController @Inject()(cc: ControllerComponents,
     }
   }
 
-  def resetAccountWithPassword = languageAction.async { implicit request =>
+  def resetAccount = languageAction.async { implicit request =>
 
     val language: String = request.acceptLanguages.head.code
     val body: AnyContent = request.body
@@ -117,34 +117,32 @@ class UserController @Inject()(cc: ControllerComponents,
 
       val resetAccountToken: String = (json \ "resetAccountToken").as[String].filter(_ != "")
       val password: String = (json \ "password").as[String].filter(_ != "")
-      val languageOpt: String = (json \ "language").as[String].filter(_ != "")
+//      val languageOpt: String = (json \ "language").as[String].filter(_ != "")
 
       authService.validateResetAccountJwt(resetAccountToken) match {
 
         case Success(claim) => {
 
           val email: String = (Json.parse(claim.content) \ "email").as[String]
-
           val result : Int = usersService.updateVerifyEmailAndPassword(authService.getSha256(password), email, Some(true), Some(0))
-
           result match {
             case 1 => {
-              val message: String = interMessage.customizedLanguageMessage(languageOpt, "user.reset.account.with.password.success", "")
+              val message: String = interMessage.customizedLanguageMessage(language, "user.reset.account.with.password.success")
               Future(Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*))
             }
             case _ => {
-              val message: String = interMessage.customizedLanguageMessage(languageOpt, "user.reset.account.with.password.error", "")
+              val message: String = interMessage.customizedLanguageMessage(language, "user.reset.account.with.password.error")
               Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
             }
           }
         }
         case _ => {
-          val message: String = interMessage.customizedLanguageMessage(languageOpt, "user.reset.account.with.password.token.error", "")
+          val message: String = interMessage.customizedLanguageMessage(language, "user.reset.account.with.password.token.error")
           Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
         }
       }
     } getOrElse {
-      val message: String = interMessage.customizedLanguageMessage(language, "user.reset.account.with.password.body.error", "")
+      val message: String = interMessage.customizedLanguageMessage(language, "user.reset.account.with.password.body.error")
       Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
     }
   }
@@ -158,14 +156,14 @@ class UserController @Inject()(cc: ControllerComponents,
     urlEncodedBody.map { json =>
 
       val email: String = (json \ "email").as[String].filter(_ != "")
-      val languageOpt: String = (json \ "language").as[String].filter(_ != "")
+//      val languageOpt: String = (json \ "language").as[String].filter(_ != "")
 
       usersService.retrieveUser(email) map { userOpt =>
 
         userOpt map { user =>
 
           if (user.verifyEmail.getOrElse(false) == true) {
-            val message: String = interMessage.customizedLanguageMessage(languageOpt, "user.retry.verify.email.already.verified", "")
+            val message: String = interMessage.customizedLanguageMessage(language, "user.retry.verify.email.already.verified", "")
             BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*)
           } else {
 
@@ -175,14 +173,14 @@ class UserController @Inject()(cc: ControllerComponents,
 
             val newUser = UserIn(None, user.email.getOrElse(""), user.nickname, "", user.firstName.getOrElse(""), user.lastName.getOrElse(""), user.phoneNumber, "Client")
 
-            sendEmailVerification(newUser, languageOpt)
+            sendEmailVerification(newUser, language)
 
-            val message: String = interMessage.customizedLanguageMessage(languageOpt, "user.retry.verify.email.success", "")
+            val message: String = interMessage.customizedLanguageMessage(language, "user.retry.verify.email.success", "")
             Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*)
           }
 
         } getOrElse {
-          val message: String = interMessage.customizedLanguageMessage(languageOpt, "user.retry.verify.email.user.not.found", "")
+          val message: String = interMessage.customizedLanguageMessage(language, "user.retry.verify.email.user.not.found", "")
           BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*)
         }
       }
@@ -208,14 +206,14 @@ class UserController @Inject()(cc: ControllerComponents,
 
           val emailToValidate: String = (Json.parse(claim.content) \ "email").as[String]
 //          val passwordToValidate: String = (Json.parse(claim.content) \ "password").as[String]
-          val languageToValidate: String = (Json.parse(claim.content) \ "language").as[String]
+//          val languageToValidate: String = (Json.parse(claim.content) \ "language").as[String]
 
           usersService.retrieveUser(emailToValidate) map { userOpt =>
 
             userOpt map { user =>
 
               if (user.verifyEmail.getOrElse(false) == true) {
-                val message: String = interMessage.customizedLanguageMessage(languageToValidate, "user.verify.email.already.verified", "")
+                val message: String = interMessage.customizedLanguageMessage(language, "user.verify.email.already.verified", "")
                 BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*)
               } else {
 
@@ -223,17 +221,17 @@ class UserController @Inject()(cc: ControllerComponents,
                 val resultUpdate: Int = usersService.updateVerifyEmail(user.email.getOrElse(""), Some(true), Some(0))
                 resultUpdate match {
                   case 1 => {
-                    val message: String = interMessage.customizedLanguageMessage(languageToValidate, "user.verify.email.success", "")
+                    val message: String = interMessage.customizedLanguageMessage(language, "user.verify.email.success", "")
                     Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*)
                   }
                   case _ => {
-                    val message: String = interMessage.customizedLanguageMessage(languageToValidate, "user.verify.email.error", "")
+                    val message: String = interMessage.customizedLanguageMessage(language, "user.verify.email.error", "")
                     BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*)
                   }
                 }
               }
             } getOrElse {
-              val message: String = interMessage.customizedLanguageMessage(languageToValidate, "user.verify.email.user.not.found", "")
+              val message: String = interMessage.customizedLanguageMessage(language, "user.verify.email.user.not.found", "")
               Forbidden(Json.toJson(ErrorMessage(FORBIDDEN, message))).withHeaders(util.headersCors: _*)
             }
           }
@@ -264,7 +262,7 @@ class UserController @Inject()(cc: ControllerComponents,
       val firstNameOpt: Option[String] = (json \ "first_name").asOpt[String]
       val lastNameOpt: Option[String] = (json \ "last_name").asOpt[String]
       val phoneOpt: Option[String] = (json \ "phone").asOpt[String]
-      val languageOpt: Option[String] = (json \ "language").asOpt[String]
+//      val languageOpt: Option[String] = (json \ "language").asOpt[String]
 
       emailOpt.map { email =>
         firstNameOpt.map { firstName =>

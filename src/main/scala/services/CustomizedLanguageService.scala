@@ -5,10 +5,21 @@ import play.api.i18n.{Lang, MessagesApi}
 
 class CustomizedLanguageService @Inject()(messagesApi: MessagesApi)  {
 
-  def customizedLanguageMessage(language: String, messageCode: String, params: String*): String = {
-    messagesApi(messageCode, params)(Lang(language))
+  def customizedLanguageMessage(language: String, messageCode: String): String = {
+    messagesApi(messageCode)(Lang(language))
   }
 
+  def customizedLanguageMessage(language: String, messageCode: String, args1: String): String = {
+    messagesApi(messageCode, args1)(Lang(language))
+  }
+
+  def customizedLanguageMessage(language: String, messageCode: String, args1: String, args2: String): String = {
+    messagesApi(messageCode, args1, args2)(Lang(language))
+  }
+
+  def customizedLanguageMessage(language: String, messageCode: String, args1: String, args2: String, args3: String): String = {
+    messagesApi(messageCode, args1, args2, args3)(Lang(language))
+  }
 
   def allMessages: String = {
     val values : Map[String, Map[String, String]] = messagesApi.messages

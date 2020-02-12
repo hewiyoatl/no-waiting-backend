@@ -64,11 +64,11 @@ OPTIONS   /talachitas/v1/users/verifyEmail                       controllers.Opt
 POST      /talachitas/v1/users/retryVerifyEmailSendNotification                       controllers.UserController.retryVerifyEmailSendNotification
 OPTIONS   /talachitas/v1/users/retryVerifyEmailSendNotification                       controllers.OptionsController.options
 
+POST      /talachitas/v1/users/resetAccountSendNotification                       controllers.UserController.resetAccountSendNotification
+OPTIONS   /talachitas/v1/users/resetAccountSendNotification                       controllers.OptionsController.options
+
 POST      /talachitas/v1/users/resetAccount                       controllers.UserController.resetAccount
 OPTIONS   /talachitas/v1/users/resetAccount                       controllers.OptionsController.options
-
-POST      /talachitas/v1/users/resetAccountWithPass                       controllers.UserController.resetAccountWithPassword
-OPTIONS   /talachitas/v1/users/resetAccountWithPass                       controllers.OptionsController.options
 
 
 # Home page
