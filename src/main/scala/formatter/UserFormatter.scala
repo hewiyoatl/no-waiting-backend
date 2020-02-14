@@ -1,6 +1,5 @@
 package formatter
 
-import model.ClientOutbound
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
@@ -35,14 +34,6 @@ object UserFormatter {
       (JsPath \ "email").readNullable[String] and
       (JsPath \ "created_timestamp").readNullable[DateTime](jodaDateReads)
     )(UserInbound.apply _)
-
-  val UserWriter: Writes[ClientOutbound] = (
-    (JsPath \ "user_id").writeNullable[Long] and
-      (JsPath \ "first_name").writeNullable[String] and
-      (JsPath \ "last_name").writeNullable[String] and
-      (JsPath \ "mobile").write[String] and
-      (JsPath \ "email").writeNullable[String]
-    )(unlift(ClientOutbound.unapply))
 
   //  val htmlGenerateWriter: Writes[HtmlRequest] = (
   //    (JsPath \ "payload").write[JsValue] and

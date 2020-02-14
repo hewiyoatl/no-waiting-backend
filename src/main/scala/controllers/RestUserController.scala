@@ -47,12 +47,8 @@ class RestUserController @Inject()(cc: ControllerComponents, restUsers: RestUser
 
           val newRestUser = RestUser(
             None,
-            userInboud.sucursalId,
-            userInboud.firstName,
-            userInboud.lastName,
-            userInboud.mobile,
-            userInboud.userName,
-            userInboud.password,
+            userInboud.userId,
+            userInboud.restaurantId,
             false)
 
           restUsers.add(newRestUser) map { restUser =>
@@ -101,12 +97,8 @@ class RestUserController @Inject()(cc: ControllerComponents, restUsers: RestUser
 
           val patchRestUser = RestUser(
             Some(id),
-            restUserInboud.sucursalId,
-            restUserInboud.firstName,
-            restUserInboud.lastName,
-            restUserInboud.mobile,
-            restUserInboud.userName,
-            restUserInboud.password,
+            restUserInboud.userId,
+            restUserInboud.restaurantId,
             false)
 
           restUsers.patchRestUser(patchRestUser) map { restUser =>

@@ -73,24 +73,27 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
     g
   }
 
-  def addUser(user: UserIn): Future[Option[UserOutbound]] = {
+  def addUser(user: UserIn): Future[Int] = {
 
-    db.run(
+    val f: Future[Int] = db.run(
       (users += user).transactionally)
 
-    Future(Option(UserOutbound(
-      None,
-      Option(user.email),
-      user.nickname,
-      Option(user.firstName),
-      Option(user.lastName),
-      user.phoneNumber,
-      Option(List(user.roles)),
-      None,
-      None,
-      None,
-      None,
-      None)))
+    f.onSuccess {
+      case s =>
+        logger.debug(s"Success Result: $s")
+    }
+
+    f.onComplete {
+      case s =>
+        logger.debug(s"Complete Result: $s")
+    }
+
+    f.onFailure {
+      case s =>
+        logger.debug(s"Complete Result: $s")
+    }
+
+    f
   }
 
 

@@ -1,15 +1,3 @@
-############ client messages
-contact.list.success=List of contacts
-contact.delete.success=Your contact was deleted correctly
-############ client messages
-client.list.success=List of clients
-client.creation.success=Client created successfully
-client.creation.error=There was an error adding a client manager
-client.body.error=Client body request not parse correctly
-client.delete.success=Your client was deleted correctly
-client.retrieve.success=Your client was retrieve correctly
-client.update.success=Client updated successfully
-client.update.error=Client unable to updated
 ############ reservation messages
 reservation.list.success=List of reservations
 reservation.creation.success=Reservation created successfully
