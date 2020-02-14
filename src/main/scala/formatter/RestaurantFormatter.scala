@@ -14,7 +14,6 @@ case class RestaurantInbound(id: Option[Long],
                              city: Option[String],
                              country: Option[String],
                              phoneNumber: Option[String],
-                             restaurantId: Option[Long],
                              latitude: Option[Float],
                              longitude: Option[Float],
                              createdTimestamp: Option[DateTime])
@@ -34,7 +33,7 @@ object RestaurantFormatter {
   )
 
   val RestaurantReader: Reads[RestaurantInbound] = (
-    (JsPath \ "restaurant_id").readNullable[Long] and
+    (JsPath \ "id").readNullable[Long] and
       (JsPath \ "address_1").readNullable[String] and
       (JsPath \ "address_2").readNullable[String] and
       (JsPath \ "zip_code").readNullable[String] and
@@ -42,14 +41,13 @@ object RestaurantFormatter {
       (JsPath \ "city").readNullable[String] and
       (JsPath \ "country").readNullable[String] and
       (JsPath \ "phone_number").readNullable[String] and
-      (JsPath \ "restaurant_id").readNullable[Long] and
       (JsPath \ "latitude").readNullable[Float] and
       (JsPath \ "longitude").readNullable[Float] and
       (JsPath \ "created_timestamp").readNullable[DateTime](jodaDateReads)
     )(RestaurantInbound.apply _)
 
   val RestaurantWriter: Writes[RestaurantOutbound] = (
-    (JsPath \ "restaurant_id").writeNullable[Long] and
+    (JsPath \ "id").writeNullable[Long] and
       (JsPath \ "address_1").writeNullable[String] and
       (JsPath \ "address_2").writeNullable[String] and
       (JsPath \ "zip_code").writeNullable[String] and

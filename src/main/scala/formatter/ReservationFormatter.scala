@@ -9,7 +9,7 @@ import play.api.libs.json._
 case class ReservationInbound(id: Option[Long],
                               userId: Option[Long],
                               userType: Option[Long],
-                              sucursalId: Option[Long],
+                              restaurantId: Option[Long],
                               status: Option[Int],
                               createdTimestamp: Option[DateTime])
 
@@ -31,7 +31,7 @@ object ReservationFormatter {
     (JsPath \ "id").readNullable[Long] and
       (JsPath \ "user_id").readNullable[Long] and
       (JsPath \ "user_type").readNullable[Long] and
-      (JsPath \ "sucursal_id").readNullable[Long] and
+      (JsPath \ "restaurant_id").readNullable[Long] and
       (JsPath \ "status").readNullable[Int] and
       (JsPath \ "created_timestamp").readNullable[DateTime](jodaDateReads)
     )(ReservationInbound.apply _)
@@ -40,7 +40,7 @@ object ReservationFormatter {
     (JsPath \ "id").writeNullable[Long] and
       (JsPath \ "user_id").writeNullable[Long] and
       (JsPath \ "user_type").writeNullable[Long] and
-      (JsPath \ "sucursal_id").writeNullable[Long] and
+      (JsPath \ "restaurant_id").writeNullable[Long] and
       (JsPath \ "status").writeNullable[Int] and
       (JsPath \ "created_timestamp").writeNullable[DateTime](jodaDateWrites)
     )(unlift(ReservationOutbound.unapply))

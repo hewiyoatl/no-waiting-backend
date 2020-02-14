@@ -52,7 +52,7 @@ class ReservationController @Inject()(cc: ControllerComponents, reservations: Re
             None,
             reservationInboud.userId,
             reservationInboud.userType,
-            reservationInboud.sucursalId,
+            reservationInboud.restaurantId,
             Some(1),
             None)
 
@@ -103,7 +103,7 @@ class ReservationController @Inject()(cc: ControllerComponents, reservations: Re
             Some(id),
             reservationInboud.userId,
             reservationInboud.userType,
-            reservationInboud.sucursalId,
+            reservationInboud.restaurantId,
             reservationInboud.status,
             None)
 

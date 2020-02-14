@@ -3,8 +3,6 @@ package models
 import com.google.inject.Inject
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.data.Form
-import play.api.data.Forms._
 import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 import slick.jdbc.MySQLProfile.api._
@@ -30,18 +28,6 @@ case class ReservationOutbound(id: Option[Long],
 
 case class ReservationFormData(firstName: String, lastName: String, mobile: String, email: String)
 
-object ReservationForm {
-
-  val form = Form(
-    mapping(
-      "firstName" -> nonEmptyText,
-      "lastName" -> nonEmptyText,
-      "mobile" -> nonEmptyText,
-      "email" -> email
-    )(ReservationFormData.apply)(ReservationFormData.unapply)
-  )
-}
-
 class ReservationTableDef(tag: Tag) extends Table[Reservation](tag, Some("talachitas"), "reservation") {
 
   def id = column[Option[Long]]("id", O.PrimaryKey, O.AutoInc)
@@ -50,14 +36,14 @@ class ReservationTableDef(tag: Tag) extends Table[Reservation](tag, Some("talach
 
   def userType = column[Option[Long]]("user_type")
 
-  def locationId = column[Option[Long]]("sucursal_id")
+  def restaurantId = column[Option[Long]]("restaurant_id")
 
   def status = column[Option[Int]]("status")
 
   def createdTimestamp = column[Option[DateTime]]("created_timestamp")
 
   override def * =
-    (id, userId, userType, locationId, status, createdTimestamp) <>(Reservation.tupled, Reservation.unapply)
+    (id, userId, userType, restaurantId, status, createdTimestamp) <>(Reservation.tupled, Reservation.unapply)
 }
 
 class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
@@ -79,7 +65,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             reservation.id,
             reservation.userId,
             reservation.userType,
-            reservation.locationId,
+            reservation.restaurantId,
             reservation.status,
             reservation.createdTimestamp)).result.map(
             _.headOption.map {
@@ -115,13 +101,13 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
     // TODO: WE NEED TO SET THE STATUS CODES. HERE 2 MEANS THAT IT IS CANCELLED.
     db.run(
       MaybeFilter(reservations)
-        .filter(location)(v => d => d.locationId === v)
+        .filter(location)(v => d => d.restaurantId === v)
         .filter(Some(2))(v => d => d.status =!= v).query.map(reservation =>
         (
           reservation.id,
           reservation.userId,
           reservation.userType,
-          reservation.locationId,
+          reservation.restaurantId,
           reservation.status,
           reservation.createdTimestamp)).result.map(
           _.seq.map {
@@ -140,7 +126,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
         reservation.id,
         reservation.userId,
         reservation.userType,
-        reservation.locationId,
+        reservation.restaurantId,
         reservation.status,
         reservation.createdTimestamp)).result.map(
         _.headOption.map {
@@ -162,7 +148,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 
         // TODO: SET THE CODE
         reservations.filter(u => u.id === reservation.id && u.status =!= Option(2)).map(
-          u => (u.id, u.userId, u.userType, u.locationId, u.status, u.createdTimestamp)).result.map(
+          u => (u.id, u.userId, u.userType, u.restaurantId, u.status, u.createdTimestamp)).result.map(
             _.headOption.map {
               case (id, userId, userType, locationId, status, createdTimestamp) =>
                 ReservationOutbound(id, userId, userType, locationId, status, createdTimestamp)

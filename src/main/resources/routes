@@ -2,16 +2,6 @@
 ## https://github.com/kenshoo/metrics-play
 GET     /talachitas/admin/metrics                          com.kenshoo.play.metrics.MetricsController.metrics
 
-# Home page
-GET       /talachitas/noqueue/v1/users                       controllers.ClientController.listUsers
-POST      /talachitas/noqueue/v1/users                       controllers.ClientController.addUser
-OPTIONS   /talachitas/noqueue/v1/users                       controllers.OptionsController.options
-
-DELETE    /talachitas/noqueue/v1/users/:id                   controllers.ClientController.deleteUser(id : Long)
-GET       /talachitas/noqueue/v1/users/:id                   controllers.ClientController.retrieveUser(id: Long)
-PATCH     /talachitas/noqueue/v1/users/:id                   controllers.ClientController.patchUser(id: Long)
-OPTIONS   /talachitas/noqueue/v1/users/:id                   controllers.OptionsController.optionsLong(id: Long)
-
 ## Restaurants endpoints
 GET       /talachitas/noqueue/v1/restaurants                       controllers.RestaurantController.listRestaurants
 POST      /talachitas/noqueue/v1/restaurants                       controllers.RestaurantController.addRestaurant

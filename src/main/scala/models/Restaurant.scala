@@ -21,7 +21,6 @@ case class Restaurant(id: Option[Long],
                       city: Option[String],
                       country: Option[String],
                       phoneNumber: Option[String],
-                      restaurantId: Option[Long],
                       latitude: Option[Float],
                       longitude: Option[Float],
                       createdTimestamp: Option[DateTime],
@@ -53,7 +52,7 @@ object RestaurantForm {
   )
 }
 
-class RestaurantTableDef(tag: Tag) extends Table[Restaurant](tag, Some("talachitas"),"sucursal") {
+class RestaurantTableDef(tag: Tag) extends Table[Restaurant](tag, Some("talachitas"),"restaurant") {
 
   def id = column[Option[Long]]("id", O.PrimaryKey, O.AutoInc)
 
@@ -70,8 +69,6 @@ class RestaurantTableDef(tag: Tag) extends Table[Restaurant](tag, Some("talachit
   def country = column[Option[String]]("country")
 
   def phoneNumber = column[Option[String]]("phone_number")
-
-  def restaurantId = column[Option[Long]]("restaurant_id")
 
   def latitude = column[Option[Float]]("latitude")
 
@@ -90,7 +87,6 @@ class RestaurantTableDef(tag: Tag) extends Table[Restaurant](tag, Some("talachit
     city,
     country,
     phoneNumber,
-    restaurantId,
     latitude,
     longitude,
     createdTimestamp,
