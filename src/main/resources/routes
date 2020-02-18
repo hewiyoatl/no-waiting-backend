@@ -47,18 +47,25 @@ OPTIONS  /talachitas/v1/users/login                   controllers.OptionsControl
 
 POST     /talachitas/v1/users                       controllers.UserController.addUser
 OPTIONS  /talachitas/v1/users                       controllers.OptionsController.options
+GET      /talachitas/v1/users                       controllers.UserController.listUsers
 
-POST      /talachitas/v1/users/verifyEmail                       controllers.UserController.verifyEmail
-OPTIONS   /talachitas/v1/users/verifyEmail                       controllers.OptionsController.options
+DELETE    /talachitas/v1/users/:id                   controllers.UserController.deleteUser(id : Long)
+GET       /talachitas/v1/users/:id                   controllers.UserController.retrieveUser(id: Long)
+PATCH     /talachitas/v1/users/:id                   controllers.UserController.patchUser(id: Long)
+OPTIONS   /talachitas/v1/users/:id                   controllers.OptionsController.optionsLong(id: Long)
 
-POST      /talachitas/v1/users/retryVerifyEmailSendNotification                       controllers.UserController.retryVerifyEmailSendNotification
-OPTIONS   /talachitas/v1/users/retryVerifyEmailSendNotification                       controllers.OptionsController.options
+## verification / validations
+POST      /talachitas/v1/users/verification/verifyEmail                       controllers.UserController.verifyEmail
+OPTIONS   /talachitas/v1/users/verification/verifyEmail                       controllers.OptionsController.options
 
-POST      /talachitas/v1/users/resetAccountSendNotification                       controllers.UserController.resetAccountSendNotification
-OPTIONS   /talachitas/v1/users/resetAccountSendNotification                       controllers.OptionsController.options
+POST      /talachitas/v1/users/verification/retryVerifyEmailSendNotification                       controllers.UserController.retryVerifyEmailSendNotification
+OPTIONS   /talachitas/v1/users/verification/retryVerifyEmailSendNotification                       controllers.OptionsController.options
 
-POST      /talachitas/v1/users/resetAccount                       controllers.UserController.resetAccount
-OPTIONS   /talachitas/v1/users/resetAccount                       controllers.OptionsController.options
+POST      /talachitas/v1/users/verification/resetAccountSendNotification                       controllers.UserController.resetAccountSendNotification
+OPTIONS   /talachitas/v1/users/verification/resetAccountSendNotification                       controllers.OptionsController.options
+
+POST      /talachitas/v1/users/verification/resetAccount                       controllers.UserController.resetAccount
+OPTIONS   /talachitas/v1/users/verification/resetAccount                       controllers.OptionsController.options
 
 
 # Home page

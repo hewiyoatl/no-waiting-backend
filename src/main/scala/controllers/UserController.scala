@@ -7,8 +7,9 @@ import auth.AuthService
 import formatter._
 import javax.inject.Inject
 import models.{UserIn, Users}
+import org.joda.time.DateTime
 import play.api.Configuration
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.mvc._
 import play.mvc.Http.HeaderNames
 import services._
@@ -30,9 +31,22 @@ class UserController @Inject()(cc: ControllerComponents,
                                util: Util)
                               (implicit context: ExecutionContext) extends AbstractController(cc) {
 
+  implicit val userReader = UserFormatter.UserReader
+
+  implicit val userWriter = UserFormatter.UserWriter
+
   implicit val errorWriter = ErrorMessageFormatter.errorWriter
 
   implicit val successWriter = SuccessMessageFormatter.successWriter
+
+  def listUsers = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
+    usersService.listAll map { users =>
+      val listUsers:Option[String] = Some(Json.stringify(Json.toJson(users)))
+      val message: String = interMessage.customizedLanguageMessage(language, "user.list.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, listUsers))).withHeaders(util.headersCors: _*)
+    }
+  }
 
   def login = languageAction.async { request =>
 
@@ -85,11 +99,11 @@ class UserController @Inject()(cc: ControllerComponents,
 
           //we need to update their retry and verify email to false
 
-          val verifyEmailRetries = Some(user.verifyEmailRetry.getOrElse(0) + 1)
+          val verifyEmailRetries = Some(user.retryEmail.getOrElse(0) + 1)
 
-          usersService.updateVerifyEmail(user.email.getOrElse(""), Some(false), verifyEmailRetries)
+          usersService.updateVerifyEmail(user.email, Some(false), verifyEmailRetries)
 
-          val newUser = UserIn(None, user.email.getOrElse(""), user.nickname, "", user.firstName.getOrElse(""), user.lastName.getOrElse(""), user.phoneNumber, "Client")
+          val newUser = UserIn(None, user.email, user.nickname, Some(""), user.firstName, user.lastName, user.phoneNumber, "Client", None, None, None, None, None, None, Some(false))
 
           sendEmailResetAccount(newUser, language)
 
@@ -124,7 +138,7 @@ class UserController @Inject()(cc: ControllerComponents,
         case Success(claim) => {
 
           val email: String = (Json.parse(claim.content) \ "email").as[String]
-          val result : Int = usersService.updateVerifyEmailAndPassword(authService.getSha256(password), email, Some(true), Some(0))
+          val result : Int = usersService.updateVerifyEmailAndPassword(Some(authService.getSha256(password)), email, Some(true), Some(0))
           result match {
             case 1 => {
               val message: String = interMessage.customizedLanguageMessage(language, "user.reset.account.with.password.success")
@@ -167,11 +181,11 @@ class UserController @Inject()(cc: ControllerComponents,
             BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*)
           } else {
 
-            val retryEmailCount = Some(user.verifyEmailRetry.getOrElse(1))
+            val retryEmailCount = Some(user.retryEmail.getOrElse(1))
 
             usersService.updateVerifyEmail(email, Some(false), retryEmailCount)
 
-            val newUser = UserIn(None, user.email.getOrElse(""), user.nickname, "", user.firstName.getOrElse(""), user.lastName.getOrElse(""), user.phoneNumber, "Client")
+            val newUser = UserIn(None, user.email, user.nickname, Some(""), user.firstName, user.lastName, user.phoneNumber, "Client", None, None, None, None, None, None, Some(false))
 
             sendEmailVerification(newUser, language)
 
@@ -218,7 +232,7 @@ class UserController @Inject()(cc: ControllerComponents,
               } else {
 
                 //finally verify and put the count retries to zero
-                val resultUpdate: Int = usersService.updateVerifyEmail(user.email.getOrElse(""), Some(true), Some(0))
+                val resultUpdate: Int = usersService.updateVerifyEmail(user.email, Some(true), Some(0))
                 resultUpdate match {
                   case 1 => {
                     val message: String = interMessage.customizedLanguageMessage(language, "user.verify.email.success", "")
@@ -267,7 +281,7 @@ class UserController @Inject()(cc: ControllerComponents,
       emailOpt.map { email =>
         firstNameOpt.map { firstName =>
           lastNameOpt.map { lastName =>
-            val newUser = UserIn(None, email, nicknameOpt, password, firstName, lastName, phoneOpt, "Client")
+            val newUser = UserIn(None, email, nicknameOpt, Some(password), firstName, lastName, phoneOpt, "Client", None, None, None, None, None, None, Some(false))
             usersService.verifyUser(email).flatMap { userExist =>
               userExist match {
                 case true => {
@@ -298,6 +312,66 @@ class UserController @Inject()(cc: ControllerComponents,
     } getOrElse {
       val message: String = interMessage.customizedLanguageMessage(language, "user.add.body.error")
       Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
+    }
+  }
+
+  def deleteUser(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
+    usersService.delete(id)
+    val message: String = interMessage.customizedLanguageMessage(language, "user.delete.success")
+    Future(Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*))
+  }
+
+  def retrieveUser(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
+    usersService.retrieveUser(id) map { user =>
+      val userString:Option[String] = Some(Json.stringify(Json.toJson(user)))
+      val message: String = interMessage.customizedLanguageMessage(language, "user.retrieve.success")
+      Ok(Json.toJson(SuccessMessage(OK, message, userString))).withHeaders(util.headersCors: _*)
+    }
+  }
+
+  def patchUser(id: Long) = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
+    val body: AnyContent = request.body
+    val jsonBody: Option[JsValue] = body.asJson
+
+    jsonBody.map {
+      json =>
+
+        val resultVal: JsResult[UserIn] = json.validate[UserIn]
+
+        resultVal.asOpt.map { userInboud =>
+
+          val patchUser = UserIn(
+            Some(id),
+            userInboud.email,
+            userInboud.nickname,
+            Some(""),
+            userInboud.firstName,
+            userInboud.lastName,
+            userInboud.phoneNumber,
+            userInboud.roles,
+            userInboud.verifyEmail,
+            userInboud.verifyPhone,
+            userInboud.retryEmail,
+            userInboud.retryPhone,
+            None,
+            Some(DateTime.now()),
+            Some(false))
+
+          usersService.patchUser(patchUser) map { restaurant =>
+            val restaurantString:Option[String] = Some(Json.stringify(Json.toJson(restaurant)))
+            val message: String = interMessage.customizedLanguageMessage(language, "user.update.success")
+            Ok(Json.toJson(SuccessMessage(OK, message, restaurantString))).withHeaders(util.headersCors: _*)
+          }
+        } getOrElse {
+          val message: String = interMessage.customizedLanguageMessage(language, "user.update.error")
+          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
+        }
+    } getOrElse {
+      val message: String = interMessage.customizedLanguageMessage(language, "user.body.error")
+      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
     }
   }
 

@@ -30,9 +30,9 @@ class Util @Inject()(config: Configuration) {
 
   def headersCors = List(
     "Access-Control-Allow-Origin" -> "*",
-    "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, DELETE, PUT",
+    "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, DELETE, PUT, PATCH",
     "Access-Control-Max-Age" -> "3600",
-    "Access-Control-Allow-Headers" -> "Origin, Content-Type, Accept, Authorization, access-control-allow-methods, access-control-allow-origin, access-control-allow-headers",
+    "Access-Control-Allow-Headers" -> "Origin, Content-Type, Accept, Authorization, Access-Control-Allow-Methods, Access-Control-Allow-Origin, Access-Control-Allow-Headers",
     "Access-Control-Allow-Credentials" -> "true"
   )
 

@@ -3,8 +3,6 @@ package models
 import com.google.inject.Inject
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.data.Form
-import play.api.data.Forms._
 import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 import slick.jdbc.MySQLProfile.api._
@@ -14,75 +12,75 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 case class Restaurant(id: Option[Long],
-                      address1: Option[String],
-                      address2: Option[String],
-                      zipCode: Option[String],
-                      state: Option[String],
-                      city: Option[String],
-                      country: Option[String],
+                      businessName: String,
+                      address1: String,
+                      address2: String,
+                      zipCode: String,
+                      suffixZipCode: Option[String],
+                      state: String,
+                      city: String,
+                      country: String,
                       phoneNumber: Option[String],
-                      latitude: Option[Float],
-                      longitude: Option[Float],
+                      latitude: Float,
+                      longitude: Float,
                       createdTimestamp: Option[DateTime],
+                      updatedTimestamp: Option[DateTime],
                       deleted: Boolean)
 
 case class RestaurantOutbound(id: Option[Long],
-                              address1: Option[String],
-                              address2: Option[String],
-                              zipCode: Option[String],
-                              state: Option[String],
-                              city: Option[String],
-                              country: Option[String],
+                              businessName: String,
+                              address1: String,
+                              address2: String,
+                              zipCode: String,
+                              suffixZipCode: Option[String],
+                              state: String,
+                              city: String,
+                              country: String,
                               phoneNumber: Option[String],
-                              latitude: Option[Float],
-                              longitude: Option[Float],
-                              createdTimestamp: Option[DateTime])
-
-case class RestaurantFormData(firstName: String, lastName: String, mobile: String, email: String)
-
-object RestaurantForm {
-
-  val form = Form(
-    mapping(
-      "firstName" -> nonEmptyText,
-      "lastName" -> nonEmptyText,
-      "mobile" -> nonEmptyText,
-      "email" -> email
-    )(RestaurantFormData.apply)(RestaurantFormData.unapply)
-  )
-}
+                              latitude: Float,
+                              longitude: Float,
+                              createdTimestamp: Option[DateTime],
+                              updatedTimestamp: Option[DateTime])
 
 class RestaurantTableDef(tag: Tag) extends Table[Restaurant](tag, Some("talachitas"),"restaurant") {
 
   def id = column[Option[Long]]("id", O.PrimaryKey, O.AutoInc)
 
-  def address1 = column[Option[String]]("address_1")
+  def businessName = column[String]("business_name")
 
-  def address2 = column[Option[String]]("address_2")
+  def address1 = column[String]("address_1")
 
-  def zipCode = column[Option[String]]("zip_code")
+  def address2 = column[String]("address_2")
 
-  def state = column[Option[String]]("state")
+  def zipCode = column[String]("zip_code")
 
-  def city = column[Option[String]]("city")
+  def suffixZipCode = column[Option[String]]("suffix_zip_code")
 
-  def country = column[Option[String]]("country")
+  def state = column[String]("state")
+
+  def city = column[String]("city")
+
+  def country = column[String]("country")
 
   def phoneNumber = column[Option[String]]("phone_number")
 
-  def latitude = column[Option[Float]]("latitude")
+  def latitude = column[Float]("latitude")
 
-  def longitude = column[Option[Float]]("longitud")
+  def longitude = column[Float]("longitude")
 
   def createdTimestamp = column[Option[DateTime]]("created_timestamp")
+
+  def updatedTimestamp = column[Option[DateTime]]("updated_timestamp")
 
   def deleted = column[Boolean]("deleted")
 
   override def * = (
     id,
+    businessName,
     address1,
     address2,
     zipCode,
+    suffixZipCode,
     state,
     city,
     country,
@@ -90,6 +88,7 @@ class RestaurantTableDef(tag: Tag) extends Table[Restaurant](tag, Some("talachit
     latitude,
     longitude,
     createdTimestamp,
+    updatedTimestamp,
     deleted) <>(Restaurant.tupled, Restaurant.unapply)
 }
 
@@ -110,40 +109,49 @@ class Restaurants @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 
         restaurants.filter(r => r.id === newId && r.deleted === false).map(
           r => (r.id,
+            r.businessName,
             r.address1,
             r.address2,
             r.zipCode,
+            r.suffixZipCode,
             r.state,
             r.city,
             r.country,
             r.phoneNumber,
             r.latitude,
             r.longitude,
-            r.createdTimestamp)).result.map(
+            r.createdTimestamp,
+            r.updatedTimestamp)).result.map(
             _.headOption.map {
               case (id,
+              businessName,
               address1,
               address2,
               zipCode,
+              suffixZipCode,
               state,
               city,
               country,
               phoneNumber,
               latitude,
               longitude,
-              createdTimestamp) =>
+              createdTimestamp,
+              updatedTimestamp) =>
                 RestaurantOutbound(
                   id,
+                  businessName,
                   address1,
                   address2,
                   zipCode,
+                  suffixZipCode,
                   state,
                   city,
                   country,
                   phoneNumber,
                   latitude,
                   longitude,
-                  createdTimestamp)
+                  createdTimestamp,
+                  updatedTimestamp)
             }
           )
       }).transactionally)
@@ -157,41 +165,50 @@ class Restaurants @Inject()(val dbConfigProvider: DatabaseConfigProvider,
     db.run(restaurants.filter(_.deleted === false).map(r =>
       (
         r.id,
+        r.businessName,
         r.address1,
         r.address2,
         r.zipCode,
+        r.suffixZipCode,
         r.state,
         r.city,
         r.country,
         r.phoneNumber,
         r.latitude,
         r.longitude,
-        r.createdTimestamp)).result.map(
+        r.createdTimestamp,
+        r.updatedTimestamp)).result.map(
         _.seq.map {
           case (
             id,
+            businessName,
             address1,
             address2,
             zipCode,
+            suffixZipCode,
             state,
             city,
             country,
             phoneNumber,
             latitude,
             longitude,
-            createdTimestamp) =>
+            createdTimestamp,
+            updatedTimestamp) =>
             RestaurantOutbound(
               id,
+              businessName,
               address1,
               address2,
               zipCode,
+              suffixZipCode,
               state,
               city,
               country,
               phoneNumber,
               latitude,
               longitude,
-              createdTimestamp)
+              createdTimestamp,
+              updatedTimestamp)
         }
       )
     )
@@ -201,41 +218,50 @@ class Restaurants @Inject()(val dbConfigProvider: DatabaseConfigProvider,
     db.run(restaurants.filter(u => u.id === id && u.deleted === false).map(
       r => (
         r.id,
+        r.businessName,
         r.address1,
         r.address2,
         r.zipCode,
+        r.suffixZipCode,
         r.state,
         r.city,
         r.country,
         r.phoneNumber,
         r.latitude,
         r.longitude,
-        r.createdTimestamp)).result.map(
+        r.createdTimestamp,
+        r.updatedTimestamp)).result.map(
         _.headOption.map {
           case (
             id,
+            businessName,
             address1,
             address2,
             zipCode,
+            suffixZipCode,
             state,
             city,
             country,
             phoneNumber,
             latitude,
             longitude,
-            createdTimestamp) =>
+            createdTimestamp,
+            updatedTimestamp) =>
             RestaurantOutbound(
               id,
+              businessName,
               address1,
               address2,
               zipCode,
+              suffixZipCode,
               state,
               city,
               country,
               phoneNumber,
               latitude,
               longitude,
-              createdTimestamp)
+              createdTimestamp,
+              updatedTimestamp)
         }
       ))
   }
@@ -246,69 +272,82 @@ class Restaurants @Inject()(val dbConfigProvider: DatabaseConfigProvider,
       restaurants.filter(r =>
         r.id === restaurant.id && r.deleted === false).map(r =>
         (
+          r.businessName,
           r.address1,
           r.address2,
           r.zipCode,
+          r.suffixZipCode,
           r.state,
           r.city,
           r.country,
           r.phoneNumber,
           r.latitude,
-          r.longitude)).update(
+          r.longitude,
+          r.updatedTimestamp)).update(
+          restaurant.businessName,
           restaurant.address1,
           restaurant.address2,
           restaurant.zipCode,
+          restaurant.suffixZipCode,
           restaurant.state,
           restaurant.city,
           restaurant.country,
           restaurant.phoneNumber,
           restaurant.latitude,
-          restaurant.longitude
+          restaurant.longitude,
+          restaurant.updatedTimestamp
         ).flatMap(x => {
 
         restaurants.filter(u => u.id === restaurant.id && u.deleted === false).map(
           r => (
             r.id,
+            r.businessName,
             r.address1,
             r.address2,
             r.zipCode,
+            r.suffixZipCode,
             r.state,
             r.city,
             r.country,
             r.phoneNumber,
             r.latitude,
             r.longitude,
-            r.createdTimestamp)).result.map(
+            r.createdTimestamp,
+            r.updatedTimestamp)).result.map(
             _.headOption.map {
               case (
                 id,
+                businessName,
                 address1,
                 address2,
                 zipCode,
+                suffixZipCode,
                 state,
                 city,
                 country,
                 phoneNumber,
                 latitude,
                 longitude,
-                createdTimestamp) =>
+                createdTimestamp,
+                updatedTimestamp) =>
                 RestaurantOutbound(
                   id,
+                  businessName,
                   address1,
                   address2,
                   zipCode,
+                  suffixZipCode,
                   state,
                   city,
                   country,
                   phoneNumber,
                   latitude,
                   longitude,
-                  createdTimestamp)
+                  createdTimestamp,
+                  updatedTimestamp)
             }
           )
 
       }).transactionally)
-
   }
-
 }

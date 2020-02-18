@@ -1,3 +1,10 @@
+############ users messages
+user.list.success=List of Users
+user.delete.success=Your user was deleted correctly
+user.retrieve.success=Your user was retrieve correctly
+user.update.success=User updated successfully
+user.update.error=User unable to updated
+user.body.error=User body request not parse correctly
 ############ reservation messages
 reservation.list.success=List of reservations
 reservation.creation.success=Reservation created successfully

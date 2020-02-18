@@ -98,13 +98,14 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
     val roles: Option[String] = (Json.parse(claims.content) \ "roles").asOpt[String]
     val isAdmin: Boolean = roles.map(_.contains("Admin")).getOrElse(false)
 
-    if (claims.expiration.get > System.currentTimeMillis && isAdmin) {
-
-      Success(claims)
-    }
-    else {
-
-      Failure(new Exception("Token expired"))
+    if (claims.expiration.get > System.currentTimeMillis) {
+      if (isAdmin) {
+        Success(claims)
+      } else {
+        Failure(new Exception("Unable to grant this operation, check your privileges"))
+      }
+    } else {
+      Failure(new Exception("Token expired, please verify"))
     }
   }
 
@@ -114,12 +115,13 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
 
     val isUser: Boolean = roles.map(_.contains("User")).getOrElse(false)
 
-    if (claims.expiration.get > System.currentTimeMillis && isUser) {
-
-      Success(claims)
-    }
-    else {
-
+    if (claims.expiration.get > System.currentTimeMillis) {
+      if (isUser) {
+        Success(claims)
+      } else {
+        Failure(new Exception("Unable to grant this operation for this, check your privileges"))
+      }
+    } else {
       Failure(new Exception("Token expired"))
     }
   }
@@ -214,10 +216,10 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
 
   def provideTokenLogin(user: UserOutbound): JsObject = {
 
-    val message =      s"""{"email":"${user.email.getOrElse("")}",
-                          |"first_name":"${user.firstName.getOrElse("")}",
-                          |"last_name":"${user.lastName.getOrElse("")}",
-                          |"roles": "${user.roles.getOrElse("")}",
+    val message =      s"""{"email":"${user.email}",
+                          |"first_name":"${user.firstName}",
+                          |"last_name":"${user.lastName}",
+                          |"roles": "${user.roles}",
                           |"exp": ${(new DateTime()).plusSeconds(expiration).getMillis},
                           |"iat": ${System.currentTimeMillis()}}""".stripMargin
 
@@ -228,10 +230,10 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
       JwtAlgorithm.ES512)
 
     Json.obj(
-      "email" -> user.email.map(JsString(_)),
-      "first_name" -> user.firstName.map(JsString(_)),
-      "last_name" -> user.lastName.map(JsString(_)),
-      "roles" -> Json.toJson(user.roles.map(x => x).getOrElse(List())),
+      "email" -> JsString(user.email),
+      "first_name" -> JsString(user.firstName),
+      "last_name" -> JsString(user.lastName),
+      "roles" -> Json.toJson(user.roles.map(x => x)),
       "nickname" -> user.nickname.map(JsString(_)),
       "bearer_token" -> token)
 

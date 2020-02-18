@@ -1,9 +1,12 @@
 package auth
 
+import formatter.{ErrorMessage, ErrorMessageFormatter}
 import javax.inject.Inject
-import pdi.jwt._
 import play.api.http.HeaderNames
+import play.api.http.Status.UNAUTHORIZED
+import play.api.libs.json.Json
 import play.api.mvc._
+import utilities.Util
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -13,8 +16,10 @@ import scala.util.{Failure, Success}
 //case class UserRequest[A](jwt: JwtClaim, token: String, request: Request[A]) extends WrappedRequest[A](request)
 
 // Our custom action implementation
-class AuthUserAction @Inject()(bodyParser: BodyParsers.Default, authService: AuthService)(implicit ec: ExecutionContext)
+class AuthUserAction @Inject()(bodyParser: BodyParsers.Default, authService: AuthService, util: Util)(implicit ec: ExecutionContext)
   extends ActionBuilder[UserRequest, AnyContent] {
+
+  implicit val errorWriter = ErrorMessageFormatter.errorWriter
 
   // A regex for parsing the Authorization header value
   private val headerTokenRegex = """Bearer (.+?)""".r
@@ -27,9 +32,9 @@ class AuthUserAction @Inject()(bodyParser: BodyParsers.Default, authService: Aut
     extractBearerToken(request) map { token =>
       authService.validateUserJwt(token) match {
         case Success(claim) => block(UserRequest(claim, token, request)) // token was valid - proceed!
-        case Failure(t) => Future.successful(Results.Unauthorized(t.getMessage)) // token was invalid - return 401
+        case Failure(t) => Future.successful(Results.Unauthorized(Json.toJson(ErrorMessage(UNAUTHORIZED, t.getMessage))).withHeaders(util.headersCors: _*)) // token was invalid - return 401
       }
-    } getOrElse Future.successful(Results.Unauthorized) // no token was sent - return 401
+    } getOrElse Future.successful(Results.Unauthorized(Json.toJson(ErrorMessage(UNAUTHORIZED, "Token not received"))).withHeaders(util.headersCors: _*)) // no token was sent - return 401
 
   // Helper for extracting the token value
   private def extractBearerToken[A](request: Request[A]): Option[String] =
