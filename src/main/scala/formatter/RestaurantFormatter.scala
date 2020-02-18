@@ -7,16 +7,19 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
 case class RestaurantInbound(id: Option[Long],
-                             address1: Option[String],
-                             address2: Option[String],
-                             zipCode: Option[String],
-                             state: Option[String],
-                             city: Option[String],
-                             country: Option[String],
+                             businessName: String,
+                             address1: String,
+                             address2: String,
+                             zipCode: String,
+                             suffixZipCode: Option[String],
+                             state: String,
+                             city: String,
+                             country: String,
                              phoneNumber: Option[String],
-                             latitude: Option[Float],
-                             longitude: Option[Float],
-                             createdTimestamp: Option[DateTime])
+                             latitude: Float,
+                             longitude: Float,
+                             createdTimestamp: Option[DateTime],
+                             updatedTimestamp: Option[DateTime])
 
 object RestaurantFormatter {
 
@@ -34,30 +37,36 @@ object RestaurantFormatter {
 
   val RestaurantReader: Reads[RestaurantInbound] = (
     (JsPath \ "id").readNullable[Long] and
-      (JsPath \ "address_1").readNullable[String] and
-      (JsPath \ "address_2").readNullable[String] and
-      (JsPath \ "zip_code").readNullable[String] and
-      (JsPath \ "state").readNullable[String] and
-      (JsPath \ "city").readNullable[String] and
-      (JsPath \ "country").readNullable[String] and
+      (JsPath \ "business_name").read[String] and
+      (JsPath \ "address_1").read[String] and
+      (JsPath \ "address_2").read[String] and
+      (JsPath \ "zip_code").read[String] and
+      (JsPath \ "suffix_zip_code").readNullable[String] and
+      (JsPath \ "state").read[String] and
+      (JsPath \ "city").read[String] and
+      (JsPath \ "country").read[String] and
       (JsPath \ "phone_number").readNullable[String] and
-      (JsPath \ "latitude").readNullable[Float] and
-      (JsPath \ "longitude").readNullable[Float] and
-      (JsPath \ "created_timestamp").readNullable[DateTime](jodaDateReads)
+      (JsPath \ "latitude").read[Float] and
+      (JsPath \ "longitude").read[Float] and
+      (JsPath \ "created_timestamp").readNullable[DateTime](jodaDateReads) and
+      (JsPath \ "updated_timestamp").readNullable[DateTime](jodaDateReads)
     )(RestaurantInbound.apply _)
 
   val RestaurantWriter: Writes[RestaurantOutbound] = (
     (JsPath \ "id").writeNullable[Long] and
-      (JsPath \ "address_1").writeNullable[String] and
-      (JsPath \ "address_2").writeNullable[String] and
-      (JsPath \ "zip_code").writeNullable[String] and
-      (JsPath \ "state").writeNullable[String] and
-      (JsPath \ "city").writeNullable[String] and
-      (JsPath \ "country").writeNullable[String] and
+      (JsPath \ "business_name").write[String] and
+      (JsPath \ "address_1").write[String] and
+      (JsPath \ "address_2").write[String] and
+      (JsPath \ "zip_code").write[String] and
+      (JsPath \ "suffix_zip_code").writeNullable[String] and
+      (JsPath \ "state").write[String] and
+      (JsPath \ "city").write[String] and
+      (JsPath \ "country").write[String] and
       (JsPath \ "phone_number").writeNullable[String] and
-      (JsPath \ "latitude").writeNullable[Float] and
-      (JsPath \ "longitude").writeNullable[Float] and
-      (JsPath \ "created_timestamp").writeNullable[DateTime](jodaDateWrites)
+      (JsPath \ "latitude").write[Float] and
+      (JsPath \ "longitude").write[Float] and
+      (JsPath \ "created_timestamp").writeNullable[DateTime](jodaDateWrites) and
+      (JsPath \ "updated_timestamp").writeNullable[DateTime](jodaDateWrites)
     )(unlift(RestaurantOutbound.unapply))
 }
 

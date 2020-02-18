@@ -50,3 +50,24 @@ alter table talachitas.rest_user
 ADD FOREIGN KEY (restaurant_id) REFERENCES restaurant(ID);
 
 drop table talachitas.reservation_event;
+
+ALTER TABLE talachitas.restaurant
+ADD COLUMN business_name varchar(50);
+
+ALTER TABLE talachitas.restaurant
+ADD COLUMN suffix_zip_code varchar(10);
+
+ALTER TABLE talachitas.restaurant
+change longitud longitude float;
+
+ALTER TABLE talachitas.restaurant
+add updated_timestamp TIMESTAMP default current_timestamp;
+
+alter table talachitas.restaurant
+change country country varchar(200);
+
+ALTER TABLE talachitas.users
+add created_timestamp TIMESTAMP default current_timestamp,
+add updated_timestamp TIMESTAMP default current_timestamp,
+add deleted BOOLEAN DEFAULT FALSE;
+

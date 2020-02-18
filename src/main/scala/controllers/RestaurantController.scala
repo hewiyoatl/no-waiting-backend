@@ -3,6 +3,7 @@ package controllers
 import formatter._
 import javax.inject.Inject
 import models.{Restaurant, Restaurants}
+import org.joda.time.DateTime
 import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.mvc._
 import services.{CustomizedLanguageService, LanguageAction, MetricsService}
@@ -50,15 +51,18 @@ class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Rest
 
           val newRestaurant = Restaurant(
             None,
+            restaurantInboud.businessName,
             restaurantInboud.address1,
             restaurantInboud.address2,
             restaurantInboud.zipCode,
+            restaurantInboud.suffixZipCode,
             restaurantInboud.state,
             restaurantInboud.city,
             restaurantInboud.country,
             restaurantInboud.phoneNumber,
             restaurantInboud.latitude,
             restaurantInboud.longitude,
+            None,
             None,
             false)
 
@@ -108,9 +112,11 @@ class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Rest
 
           val patchRestaurant = Restaurant(
             Some(id),
+            restaurantInboud.businessName,
             restaurantInboud.address1,
             restaurantInboud.address2,
             restaurantInboud.zipCode,
+            restaurantInboud.suffixZipCode,
             restaurantInboud.state,
             restaurantInboud.city,
             restaurantInboud.country,
@@ -118,6 +124,7 @@ class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Rest
             restaurantInboud.latitude,
             restaurantInboud.longitude,
             None,
+            Some(DateTime.now()),
             false)
 
           restaurants.patchRestaurant(patchRestaurant) map { restaurant =>
