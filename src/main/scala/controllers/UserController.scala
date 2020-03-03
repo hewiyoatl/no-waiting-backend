@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
 import auth.AuthService
 import formatter._
 import javax.inject.Inject
-import models.{UserIn, Users}
+import models._
 import org.joda.time.DateTime
 import play.api.Configuration
 import play.api.libs.json.{JsResult, JsValue, Json}
@@ -21,6 +21,7 @@ import scala.util.{Failure, Success}
 
 class UserController @Inject()(cc: ControllerComponents,
                                usersService: Users,
+                               addressService: Addresses,
                                authService: AuthService,
                                config: Configuration,
                                metricsService: MetricsService,
@@ -103,7 +104,7 @@ class UserController @Inject()(cc: ControllerComponents,
 
           usersService.updateVerifyEmail(user.email, Some(false), verifyEmailRetries)
 
-          val newUser = UserIn(None, user.email, user.nickname, Some(""), user.firstName, user.lastName, user.phoneNumber, "Client", None, None, None, None, None, None, Some(false))
+          val newUser = UserModelIn(None, user.email, user.nickname, Some(""), user.firstName, user.lastName, user.phoneNumber, "Client", None, None, None, None, None, None, None, Some(false))
 
           sendEmailResetAccount(newUser, language)
 
@@ -185,7 +186,7 @@ class UserController @Inject()(cc: ControllerComponents,
 
             usersService.updateVerifyEmail(email, Some(false), retryEmailCount)
 
-            val newUser = UserIn(None, user.email, user.nickname, Some(""), user.firstName, user.lastName, user.phoneNumber, "Client", None, None, None, None, None, None, Some(false))
+            val newUser = UserModelIn(None, user.email, user.nickname, Some(""), user.firstName, user.lastName, user.phoneNumber, "Client", None, None, None, None, None, None, None, Some(false))
 
             sendEmailVerification(newUser, language)
 
@@ -281,7 +282,7 @@ class UserController @Inject()(cc: ControllerComponents,
       emailOpt.map { email =>
         firstNameOpt.map { firstName =>
           lastNameOpt.map { lastName =>
-            val newUser = UserIn(None, email, nicknameOpt, Some(password), firstName, lastName, phoneOpt, "Client", None, None, None, None, None, None, Some(false))
+            val newUser = UserModelIn(None, email, nicknameOpt, Some(password), firstName, lastName, phoneOpt, "Client", None, None, None, None, None, None, None, Some(false))
             usersService.verifyUser(email).flatMap { userExist =>
               userExist match {
                 case true => {
@@ -343,7 +344,15 @@ class UserController @Inject()(cc: ControllerComponents,
 
         resultVal.asOpt.map { userInboud =>
 
-          val patchUser = UserIn(
+          var addressId: Option[Long] = addressService.retrieveAddressPerPrimaryKey(userInboud.addressInfo).map(_.id).getOrElse(None)
+          //if the address was not there in the table,
+          //but user wants to update his/her address
+          if (addressId.getOrElse(0) == 0 && addressService.receivingPrimaryKeyQuestion(userInboud.addressInfo)) {
+            val addressResult: Option[Long] = addressService.add(userInboud.addressInfo.get)
+            addressId = addressResult
+          }
+
+          val patchUser = UserModelIn(
             Some(id),
             userInboud.email,
             userInboud.nickname,
@@ -356,6 +365,7 @@ class UserController @Inject()(cc: ControllerComponents,
             userInboud.verifyPhone,
             userInboud.retryEmail,
             userInboud.retryPhone,
+            addressId,
             None,
             Some(DateTime.now()),
             Some(false))
@@ -367,15 +377,15 @@ class UserController @Inject()(cc: ControllerComponents,
           }
         } getOrElse {
           val message: String = interMessage.customizedLanguageMessage(language, "user.update.error")
-          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
+          Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
         }
     } getOrElse {
       val message: String = interMessage.customizedLanguageMessage(language, "user.body.error")
-      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))))
+      Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
     }
   }
 
-  private def sendEmailVerification(newUser: UserIn, language: String): Unit = {
+  private def sendEmailVerification(newUser: UserModelIn, language: String): Unit = {
 
     val subject: String = interMessage.customizedLanguageMessage(language, "user.send.email.verification.subject", newUser.firstName, newUser.lastName)
     val bodyMessage: String = interMessage.customizedLanguageMessage(language, "user.send.email.verification.body", newUser.firstName, newUser.lastName)
@@ -390,7 +400,7 @@ class UserController @Inject()(cc: ControllerComponents,
     )
   }
 
-  private def sendEmailResetAccount(newUser: UserIn, language: String): Unit = {
+  private def sendEmailResetAccount(newUser: UserModelIn, language: String): Unit = {
 
     val subject: String = interMessage.customizedLanguageMessage(language, "user.send.email.reset.subject", newUser.firstName, newUser.lastName)
     val bodyMessage: String = interMessage.customizedLanguageMessage(language, "user.send.email.reset.body", newUser.firstName, newUser.lastName)

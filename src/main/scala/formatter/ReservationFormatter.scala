@@ -1,17 +1,10 @@
 package formatter
 
-import models.ReservationOutbound
+import models.{Address, AddressOutbound, Reservation, ReservationOutbound}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-
-case class ReservationInbound(id: Option[Long],
-                              userId: Option[Long],
-                              userType: Option[Long],
-                              restaurantId: Option[Long],
-                              status: Option[Int],
-                              createdTimestamp: Option[DateTime])
 
 object ReservationFormatter {
 
@@ -27,22 +20,37 @@ object ReservationFormatter {
     )
   )
 
-  val ReservationReader: Reads[ReservationInbound] = (
+  import AddressFormatter._
+
+  val ReservationReader: Reads[Reservation] = (
     (JsPath \ "id").readNullable[Long] and
-      (JsPath \ "user_id").readNullable[Long] and
-      (JsPath \ "user_type").readNullable[Long] and
-      (JsPath \ "restaurant_id").readNullable[Long] and
-      (JsPath \ "status").readNullable[Int] and
-      (JsPath \ "created_timestamp").readNullable[DateTime](jodaDateReads)
-    )(ReservationInbound.apply _)
+      (JsPath \ "user_id").read[Long] and
+      (JsPath \ "restaurant_id").read[Long] and
+      (JsPath \ "status").read[String] and
+      (JsPath \ "comments").readNullable[String] and
+      (JsPath \ "source_address_info").readNullable[Address] and
+      (JsPath \ "destination_address_info").readNullable[Address] and
+      (JsPath \ "waiting_time_creation").readNullable[Long] and
+      (JsPath \ "waiting_time_counting").readNullable[Long] and
+      (JsPath \ "created_timestamp").readNullable[DateTime](jodaDateReads) and
+      (JsPath \ "updated_timestamp").readNullable[DateTime](jodaDateReads) and
+      (JsPath \ "deleted").readNullable[Boolean]
+    )(Reservation.apply _)
 
   val ReservationWriter: Writes[ReservationOutbound] = (
     (JsPath \ "id").writeNullable[Long] and
-      (JsPath \ "user_id").writeNullable[Long] and
-      (JsPath \ "user_type").writeNullable[Long] and
-      (JsPath \ "restaurant_id").writeNullable[Long] and
-      (JsPath \ "status").writeNullable[Int] and
-      (JsPath \ "created_timestamp").writeNullable[DateTime](jodaDateWrites)
+      (JsPath \ "user_id").write[Long] and
+      (JsPath \ "user_name").write[String] and
+      (JsPath \ "restaurant_id").write[Long] and
+      (JsPath \ "restaurant_name").write[String] and
+      (JsPath \ "status").write[String] and
+      (JsPath \ "comments").writeNullable[String] and
+      (JsPath \ "source_address_info").writeNullable[AddressOutbound] and
+      (JsPath \ "destination_address_info").writeNullable[AddressOutbound] and
+      (JsPath \ "waiting_time_creation").write[Long] and
+      (JsPath \ "waiting_time_counting").write[Long] and
+      (JsPath \ "created_timestamp").writeNullable[DateTime](jodaDateWrites) and
+      (JsPath \ "updated_timestamp").writeNullable[DateTime](jodaDateWrites)
     )(unlift(ReservationOutbound.unapply))
 }
 

@@ -25,4 +25,8 @@ class OptionsController @Inject()(cc: ControllerComponents, contactss: Contacts)
   def optionsLong(id: Long) = Action {
     NoContent.withHeaders(util.headersCors : _*)
   }
+
+  def optionsStringTuple(fields: String, values: String) = Action {
+    NoContent.withHeaders(util.headersCors : _*)
+  }
 }

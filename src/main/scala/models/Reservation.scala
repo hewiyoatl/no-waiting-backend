@@ -1,52 +1,112 @@
 package models
 
+//import java.sql.Date
+
 import com.google.inject.Inject
 import org.joda.time.DateTime
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 import slick.jdbc.MySQLProfile.api._
-import utilities.DateTimeMapper._
-import utilities.MaybeFilter
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+
+// valid status are: enum('STARTED','IN-QUEUE','AVAILABLE','COMPLETED','CANCELLED')
+object ReservationStatus extends Enumeration {
+  val STARTED = "STARTED"
+  val IN_QUEUE = "IN_QUEUE"
+  val AVAILABLE = "AVAILABLE"
+  val COMPLETED = "COMPLETED"
+  val CANCELLED = "CANCELLED"
+}
+case class ReservationModel(id: Option[Long],
+                       userId: Long,
+                       restaurantId: Long,
+                       status: String,
+                       comments: Option[String],
+                       sourceAddressId: Long,
+                       destinationAddressId: Long,
+                       waitingTimeCreation: Long,
+                       waitingTimeCounting: Long,
+                       createdTimestamp: Option[DateTime],
+                       updatedTimestamp: Option[DateTime],
+                       deleted: Boolean)
 
 case class Reservation(id: Option[Long],
-                       userId: Option[Long],
-                       userType: Option[Long],
-                       locationId: Option[Long],
-                       status: Option[Int],
-                       created_timestamp: Option[DateTime])
+                            userId: Long,
+                            restaurantId: Long,
+                            status: String,
+                            comments: Option[String],
+                            sourceAddressId: Option[Address],
+                            destinationAddressId: Option[Address],
+                            waitingTimeCreation: Option[Long],
+                            waitingTimeCounting: Option[Long],
+                            createdTimestamp: Option[DateTime],
+                            updatedTimestamp: Option[DateTime],
+                            deleted: Option[Boolean])
 
 case class ReservationOutbound(id: Option[Long],
-                               userId: Option[Long],
-                               userType: Option[Long],
-                               locationId: Option[Long],
-                               status: Option[Int],
-                               createdTimestamp: Option[DateTime])
+                               userId: Long,
+                               userName: String,
+                               restaurantId: Long,
+                               restaurantName: String,
+                               status: String,
+                               comments: Option[String],
+                               sourceAddress: Option[AddressOutbound],
+                               destinationAddress: Option[AddressOutbound],
+                               waitingTimeCreation: Long,
+                               waitingTimeCounting: Long,
+                               createdTimestamp: Option[DateTime],
+                               updatedTimestamp: Option[DateTime])
 
-case class ReservationFormData(firstName: String, lastName: String, mobile: String, email: String)
+//needed to parse dates for slick
+import utilities.DateTimeMapper._
 
-class ReservationTableDef(tag: Tag) extends Table[Reservation](tag, Some("talachitas"), "reservation") {
+class ReservationTableDef(tag: Tag) extends Table[ReservationModel](tag, Some("talachitas"), "reservation") {
 
   def id = column[Option[Long]]("id", O.PrimaryKey, O.AutoInc)
 
-  def userId = column[Option[Long]]("user_id")
+  def userId = column[Long]("user_id")
 
-  def userType = column[Option[Long]]("user_type")
+  def restaurantId = column[Long]("restaurant_id")
 
-  def restaurantId = column[Option[Long]]("restaurant_id")
+  def status = column[String]("status")
 
-  def status = column[Option[Int]]("status")
+  def comments = column[Option[String]]("comments")
+
+  def sourceAddressId = column[Long]("source_address_id")
+
+  def destinationAddressId = column[Long]("destination_address_id")
+
+  def waitingTimeCreation = column[Long]("waiting_time_creation")
+
+  def waitingTimeCounting = column[Long]("waiting_time_counting")
 
   def createdTimestamp = column[Option[DateTime]]("created_timestamp")
 
+  def updatedTimestamp = column[Option[DateTime]]("updated_timestamp")
+
+  def deleted = column[Boolean]("deleted")
+
   override def * =
-    (id, userId, userType, restaurantId, status, createdTimestamp) <>(Reservation.tupled, Reservation.unapply)
+     (id,
+      userId,
+      restaurantId,
+      status,
+      comments,
+      sourceAddressId,
+      destinationAddressId,
+      waitingTimeCreation,
+      waitingTimeCounting,
+      createdTimestamp,
+      updatedTimestamp,
+      deleted) <>(ReservationModel.tupled, ReservationModel.unapply)
 }
 
 class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
+                             config: Configuration,
                              customizedSlickConfig: CustomizedSlickConfig)
   extends HasDatabaseConfigProviderTalachitas[JdbcProfile] {
 
@@ -54,108 +114,267 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 
   this.dbConfig = customizedSlickConfig.createDbConfigCustomized(dbConfigProvider)
 
+  val addresses = TableQuery[AddressTableDef]
+
   val reservations = TableQuery[ReservationTableDef]
 
-  def add(reservation: Reservation): Future[Option[ReservationOutbound]] = {
-    db.run(
-      ((reservations returning reservations.map(_.id)) += reservation).flatMap(newId => {
+  val restaurants = TableQuery[RestaurantTableDef]
 
-        reservations.filter(reservation => reservation.id === newId).map(
-          reservation => (
-            reservation.id,
-            reservation.userId,
-            reservation.userType,
-            reservation.restaurantId,
-            reservation.status,
-            reservation.createdTimestamp)).result.map(
-            _.headOption.map {
-              case (
-                id,
-                userId,
-                userType,
-                locationId,
-                status,
-                createdTimestamp
-                ) =>
-                ReservationOutbound(
-                  id,
-                  userId,
-                  userType,
-                  locationId,
-                  status,
-                  createdTimestamp
-                )
-            }
-          )
+  val users = TableQuery[UsersTableDef]
 
-      }).transactionally)
+  val timeoutDatabaseSeconds = config.get[Duration]("talachitas.dbs.timeout")
+
+  def add(reservation: ReservationModel): Future[Option[Long]] = {
+
+    val q1 = (reservations returning reservations.map(_.id)) += reservation
+
+    val future: Future[Option[Long]] = db.run { q1.transactionally }
+
+    future
+
+    //    Await.result(future, timeoutDatabaseSeconds)
   }
 
   def delete(id: Long): Future[Int] = {
-    // TODO: WE NEED TO SET THE STATUS CODES. HERE 2 MEANS CANCCELLED
-    db.run(reservations.filter(_.id === id).map(u => u.status).update(Some(2)))
+    db.run(reservations.filter(_.id === id).map(u => u.deleted).update(true))
   }
 
-  def listAll(location: Option[Long]): Future[Seq[ReservationOutbound]] = {
+  def listAll(status: String): Future[Seq[ReservationOutbound]] = {
+    val monadicInnerJoin = for {
+      r   <- reservations if (r.deleted === false && r.status === status)
+      rest <- restaurants if (r.restaurantId === rest.id)
+      addressRestaurant <- addresses if (addressRestaurant.id === rest.addressId)
+      u   <- users if (u.id === r.userId)
+      addressUser <- addresses if (addressUser.id === u.addressId)
+    } yield (r, rest, addressRestaurant, u, addressUser)
 
-    // TODO: WE NEED TO SET THE STATUS CODES. HERE 2 MEANS THAT IT IS CANCELLED.
-    db.run(
-      MaybeFilter(reservations)
-        .filter(location)(v => d => d.restaurantId === v)
-        .filter(Some(2))(v => d => d.status =!= v).query.map(reservation =>
-        (
-          reservation.id,
-          reservation.userId,
-          reservation.userType,
-          reservation.restaurantId,
-          reservation.status,
-          reservation.createdTimestamp)).result.map(
-          _.seq.map {
-            case (id, userId, userType, locationId, status, createdTimestamp) =>
-              ReservationOutbound(id, userId, userType, locationId, status, createdTimestamp)
-          }
-        )
+    db.run(monadicInnerJoin.result.map(
+      _.seq.map {
+        case (r, rest, addressRestaurant, u, addressUser) => {
+
+          val addressInfoUser: AddressOutbound =
+            AddressOutbound(
+              addressUser.id,
+              addressUser.address1,
+              addressUser.address2,
+              addressUser.zipCode,
+              addressUser.suffixZipCode,
+              addressUser.state,
+              addressUser.city,
+              addressUser.country,
+              addressUser.latitude,
+              addressUser.longitude,
+              addressUser.createdTimestamp)
+
+          val addressInfoRestaurant: AddressOutbound =
+            AddressOutbound(
+              addressRestaurant.id,
+              addressRestaurant.address1,
+              addressRestaurant.address2,
+              addressRestaurant.zipCode,
+              addressRestaurant.suffixZipCode,
+              addressRestaurant.state,
+              addressRestaurant.city,
+              addressRestaurant.country,
+              addressRestaurant.latitude,
+              addressRestaurant.longitude,
+              addressRestaurant.createdTimestamp)
+
+          ReservationOutbound(
+            r.id,
+            u.id.getOrElse(0),
+            u.firstName + " " + u.lastName,
+            rest.id.getOrElse(0),
+            rest.businessName,
+            r.status,
+            r.comments,
+            Some(addressInfoUser),
+            Some(addressInfoRestaurant),
+            r.waitingTimeCreation,
+            r.waitingTimeCounting,
+            r.createdTimestamp,
+            r.updatedTimestamp)
+        }
+      }
+
+    ))
+  }
+
+  def listAll: Future[Seq[ReservationOutbound]] = {
+
+    val monadicInnerJoin = for {
+      r   <- reservations if (r.deleted === false)
+      rest <- restaurants if (r.restaurantId === rest.id)
+      addressRestaurant <- addresses if (addressRestaurant.id === rest.addressId)
+      u   <- users if (u.id === r.userId)
+      addressUser <- addresses if (addressUser.id === u.addressId)
+    } yield (r, rest, addressRestaurant, u, addressUser)
+
+    db.run(monadicInnerJoin.result.map(
+      _.seq.map {
+        case (r, rest, addressRestaurant, u, addressUser) => {
+
+          val addressInfoUser: AddressOutbound =
+            AddressOutbound(
+                addressUser.id,
+                addressUser.address1,
+                addressUser.address2,
+                addressUser.zipCode,
+                addressUser.suffixZipCode,
+                addressUser.state,
+                addressUser.city,
+                addressUser.country,
+                addressUser.latitude,
+                addressUser.longitude,
+                addressUser.createdTimestamp)
+
+          val addressInfoRestaurant: AddressOutbound =
+              AddressOutbound(
+                addressRestaurant.id,
+                addressRestaurant.address1,
+                addressRestaurant.address2,
+                addressRestaurant.zipCode,
+                addressRestaurant.suffixZipCode,
+                addressRestaurant.state,
+                addressRestaurant.city,
+                addressRestaurant.country,
+                addressRestaurant.latitude,
+                addressRestaurant.longitude,
+                addressRestaurant.createdTimestamp)
+
+          ReservationOutbound(
+            r.id,
+            u.id.getOrElse(0),
+            u.firstName + " " + u.lastName,
+            rest.id.getOrElse(0),
+            rest.businessName,
+            r.status,
+            r.comments,
+            Some(addressInfoUser),
+            Some(addressInfoRestaurant),
+            r.waitingTimeCreation,
+            r.waitingTimeCounting,
+            r.createdTimestamp,
+            r.updatedTimestamp)
+        }
+      }
+
+    ))
+  }
+
+  def reservationsToProcess: Future[Seq[ReservationOutbound]] = {
+
+    val monadicInnerJoin = for {
+      r   <- reservations if ((r.status === "STARTED" || r.status === "IN_QUEUE" || r.status === "AVAILABLE") && r.deleted === false)
+    } yield (r)
+
+    db.run(monadicInnerJoin.result.map(
+      _.seq.map {
+        case (r) =>
+          ReservationOutbound(
+            r.id,
+            r.userId,
+            "",
+            0,
+            "",
+            r.status,
+            r.comments,
+            None,
+            None,
+            r.waitingTimeCreation,
+            r.waitingTimeCounting,
+            r.createdTimestamp,
+            r.updatedTimestamp)
+      }
+    )
     )
   }
 
-  def retrieveReservation(id: Long): Future[Option[ReservationOutbound]] = {
+  def retrieveReservation(id: Long): Future[Seq[ReservationOutbound]] = {
 
-    // TODO: WE NEED TO SET STATUS CODES
-    db.run(reservations.filter(reservation => reservation.id === id && reservation.status =!= Option(2)).map(
-      reservation => (
-        reservation.id,
-        reservation.userId,
-        reservation.userType,
-        reservation.restaurantId,
-        reservation.status,
-        reservation.createdTimestamp)).result.map(
-        _.headOption.map {
-          case (
-            id, userId, userType, locationId, status, createdTimestamp) =>
-            ReservationOutbound(id, userId, userType, locationId, status, createdTimestamp)
+    val monadicInnerJoin = for {
+      r   <- reservations if (r.deleted === false && r.id === id)
+      rest <- restaurants if (r.restaurantId === rest.id)
+      addressRestaurant <- addresses if (addressRestaurant.id === rest.addressId)
+      u   <- users if (u.id === r.userId)
+      addressUser <- addresses if (addressUser.id === u.addressId)
+    } yield (r, rest, addressRestaurant, u, addressUser)
+
+    db.run(monadicInnerJoin.result.map(
+      _.seq.map {
+        case (r, rest, addressRestaurant, u, addressUser) => {
+
+          val addressInfoUser: AddressOutbound =
+            AddressOutbound(
+              addressUser.id,
+              addressUser.address1,
+              addressUser.address2,
+              addressUser.zipCode,
+              addressUser.suffixZipCode,
+              addressUser.state,
+              addressUser.city,
+              addressUser.country,
+              addressUser.latitude,
+              addressUser.longitude,
+              addressUser.createdTimestamp)
+
+          val addressInfoRestaurant: AddressOutbound =
+            AddressOutbound(
+              addressRestaurant.id,
+              addressRestaurant.address1,
+              addressRestaurant.address2,
+              addressRestaurant.zipCode,
+              addressRestaurant.suffixZipCode,
+              addressRestaurant.state,
+              addressRestaurant.city,
+              addressRestaurant.country,
+              addressRestaurant.latitude,
+              addressRestaurant.longitude,
+              addressRestaurant.createdTimestamp)
+
+          ReservationOutbound(
+            r.id,
+            u.id.getOrElse(0),
+            u.firstName + " " + u.lastName,
+            rest.id.getOrElse(0),
+            rest.businessName,
+            r.status,
+            r.comments,
+            Some(addressInfoUser),
+            Some(addressInfoRestaurant),
+            r.waitingTimeCreation,
+            r.waitingTimeCounting,
+            r.createdTimestamp,
+            r.updatedTimestamp)
         }
-      ))
+      }
+
+    ))
   }
 
-  def patchReservation(reservation: Reservation): Future[Option[ReservationOutbound]] = {
+  def patchReservation(reservation: ReservationModel): Future[Option[ReservationOutbound]] = {
 
     db.run(
-      reservations.filter(r =>
-        r.id === reservation.id && r.status =!= Option(2)).map(r =>
-        (r.status)).update(
-          reservation.status
-        ).flatMap(x => {
-
-        // TODO: SET THE CODE
-        reservations.filter(u => u.id === reservation.id && u.status =!= Option(2)).map(
-          u => (u.id, u.userId, u.userType, u.restaurantId, u.status, u.createdTimestamp)).result.map(
+      reservations.filter(r => r.id === reservation.id && r.deleted === false).map(r =>
+        (r.status, r.comments, r.updatedTimestamp)).update(reservation.status, reservation.comments, reservation.updatedTimestamp).flatMap(x => {
+        reservations.filter(u => u.id === reservation.id).map(
+          u => (u.id, u.userId, u.restaurantId, u.status, u.comments, u.sourceAddressId, u.destinationAddressId, u.waitingTimeCreation, u.waitingTimeCounting, u.createdTimestamp, u.updatedTimestamp, u.deleted)).result.map(
             _.headOption.map {
-              case (id, userId, userType, locationId, status, createdTimestamp) =>
-                ReservationOutbound(id, userId, userType, locationId, status, createdTimestamp)
+              case (id, userId, restaurantId, status, comments, sourceAddressId, destinationAddressId, waitingTimeCreation, waitingTimeCounting, createdTimestamp, updatedTimestamp, deleted) =>
+                ReservationOutbound(id, userId, "", restaurantId, "", status, comments, None, None, waitingTimeCreation, waitingTimeCounting, createdTimestamp, updatedTimestamp)
             }
           )
-
       }).transactionally)
   }
 
+  def updateWaitingTime(reservationId: Long, waitingTimeCounting: Long): Int = {
+
+    val future: Future[Int] = db.run(reservations.filter(u => u.id === reservationId && u.deleted === false)
+      .map(r => (r.waitingTimeCounting)).update(waitingTimeCounting))
+
+    val g = Await.result(future, timeoutDatabaseSeconds)
+
+    g
+
+  }
 }

@@ -1,6 +1,6 @@
 package formatter
 
-import models.{UserIn, UserOutbound}
+import models._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
@@ -20,6 +20,8 @@ object UserFormatter {
     )
   )
 
+  import AddressFormatter._
+
   val UserReader: Reads[UserIn] = (
     (JsPath \ "id").readNullable[Long] and
       (JsPath \ "email").read[String] and
@@ -33,6 +35,7 @@ object UserFormatter {
       (JsPath \ "verify_phone").readNullable[Boolean] and
       (JsPath \ "retry_email").readNullable[Int] and
       (JsPath \ "retry_phone").readNullable[Int] and
+      (JsPath \ "address_info").readNullable[Address] and
       (JsPath \ "created_timestamp").readNullable[DateTime](jodaDateReads) and
       (JsPath \ "updated_timestamp").readNullable[DateTime](jodaDateReads) and
       (JsPath \ "deleted").readNullable[Boolean]
@@ -51,9 +54,9 @@ object UserFormatter {
       (JsPath \ "retryEmail").writeNullable[Int] and
       (JsPath \ "verifyPhone").writeNullable[Boolean] and
       (JsPath \ "retryPhone").writeNullable[Int] and
+      (JsPath \ "address_info").writeNullable[AddressOutbound] and
       (JsPath \ "created_timestamp").writeNullable[DateTime](jodaDateWrites) and
       (JsPath \ "updated_timestamp").writeNullable[DateTime](jodaDateWrites)
     )(unlift(UserOutbound.unapply))
-
 }
 

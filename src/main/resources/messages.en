@@ -23,15 +23,6 @@ restaurant.delete.success=Your restaurant was deleted correctly
 restaurant.retrieve.success=Your restaurant was retrieve correctly
 restaurant.update.success=Restaurant updated successfully
 restaurant.update.error=Restaurant unable to updated
-############ restaurant users messages
-restuser.list.success=List of restaurant users
-restuser.creation.success=Restaurant user created successfully
-restuser.creation.error=There was an error adding a restaurant user
-restuser.body.error=Restaurant user body request not parse correctly
-restuser.delete.success=Your restaurant user was deleted correctly
-restuser.retrieve.success=Your restaurant user was retrieve correctly
-restuser.update.success=Restaurant user updated successfully
-restuser.update.error=Restaurant user unable to updated
 ############ user talachitas login
 user.login.success=User generated login credentials successfully
 user.login.error.email=User has not verify his/her email

@@ -12,18 +12,8 @@ GET       /talachitas/noqueue/v1/restaurants/:id                   controllers.R
 PATCH     /talachitas/noqueue/v1/restaurants/:id                   controllers.RestaurantController.patchRestaurant(id: Long)
 OPTIONS   /talachitas/noqueue/v1/restaurants/:id                   controllers.OptionsController.optionsLong(id: Long)
 
-## Rest Users points
-GET       /talachitas/noqueue/v1/rest-users                       controllers.RestUserController.listRestUsers
-POST      /talachitas/noqueue/v1/rest-users                       controllers.RestUserController.addRestUser
-OPTIONS   /talachitas/noqueue/v1/rest-users                       controllers.OptionsController.options
-
-DELETE    /talachitas/noqueue/v1/rest-users/:id                    controllers.RestUserController.deleteRestUser(id : Long)
-GET       /talachitas/noqueue/v1/rest-users/:id                    controllers.RestUserController.retrieveRestUser(id: Long)
-PATCH     /talachitas/noqueue/v1/rest-users/:id                    controllers.RestUserController.patchRestUser(id: Long)
-OPTIONS   /talachitas/noqueue/v1/rest-users/:id                    controllers.OptionsController.optionsLong(id: Long)
-
 ## Reservation endpoints
-GET       /talachitas/noqueue/v1/reservations                       controllers.ReservationController.listReservations(location: Option[Long])
+GET       /talachitas/noqueue/v1/reservations                       controllers.ReservationController.listReservations
 POST      /talachitas/noqueue/v1/reservations                       controllers.ReservationController.addReservation
 OPTIONS   /talachitas/noqueue/v1/reservations                       controllers.OptionsController.options
 
@@ -31,6 +21,9 @@ DELETE    /talachitas/noqueue/v1/reservations/:id                   controllers.
 GET       /talachitas/noqueue/v1/reservations/:id                   controllers.ReservationController.retrieveReservation(id: Long)
 PATCH     /talachitas/noqueue/v1/reservations/:id                   controllers.ReservationController.patchReservation(id: Long)
 OPTIONS   /talachitas/noqueue/v1/reservations/:id                   controllers.OptionsController.optionsLong(id: Long)
+
+GET       /talachitas/noqueue/v1/reservations/search/:fields/:values    controllers.ReservationController.searchReservations(fields: String, values: String)
+OPTIONS   /talachitas/noqueue/v1/reservations/search/:fields/:values    controllers.OptionsController.optionsStringTuple(fields: String, values: String)
 
 ## This is to create contacts in our page
 POST      /talachitas/v1/contacts                      controllers.ContactController.addContact
