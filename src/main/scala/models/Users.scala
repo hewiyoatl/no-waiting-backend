@@ -14,38 +14,73 @@ import scala.concurrent.{Await, Future}
 //needed to parse dates for slick
 import utilities.DateTimeMapper._
 
-case class UserIn(id: Option[Long],
-                  email: String,
-                  nickname: Option[String],
-                  password: Option[String],
-                  firstName: String,
-                  lastName: String,
-                  phoneNumber: Option[String],
-                  roles: String,
-                  verifyEmail: Option[Boolean],
-                  verifyPhone: Option[Boolean],
-                  retryEmail: Option[Int],
-                  retryPhone: Option[Int],
-                  createdTimestamp: Option[DateTime],
-                  updatedTimestamp: Option[DateTime],
-                  deleted: Option[Boolean])
+case class UserIn(     id: Option[Long],
+                       email: String,
+                       nickname: Option[String],
+                       password: Option[String],
+                       firstName: String,
+                       lastName: String,
+                       phoneNumber: Option[String],
+                       roles: String,
+                       verifyEmail: Option[Boolean],
+                       verifyPhone: Option[Boolean],
+                       retryEmail: Option[Int],
+                       retryPhone: Option[Int],
+                       addressInfo: Option[Address],
+                       createdTimestamp: Option[DateTime],
+                       updatedTimestamp: Option[DateTime],
+                       deleted: Option[Boolean])
+
+case class UserModelIn(id: Option[Long],
+                       email: String,
+                       nickname: Option[String],
+                       password: Option[String],
+                       firstName: String,
+                       lastName: String,
+                       phoneNumber: Option[String],
+                       roles: String,
+                       verifyEmail: Option[Boolean],
+                       verifyPhone: Option[Boolean],
+                       retryEmail: Option[Int],
+                       retryPhone: Option[Int],
+                       addressId: Option[Long],
+                       createdTimestamp: Option[DateTime],
+                       updatedTimestamp: Option[DateTime],
+                       deleted: Option[Boolean])
+
+//case class UserModelOutbound(id: Option[Long],
+//                        email: String,
+//                        nickname: Option[String],
+//                        firstName: String,
+//                        lastName: String,
+//                        phoneNumber: Option[String],
+//                        roles: String,
+//                        bearerToken: Option[String],
+//                        verifyEmail: Option[Boolean],
+//                        retryEmail: Option[Int],
+//                        verifyPhone: Option[Boolean],
+//                        retryPhone: Option[Int],
+//                        addressId: Option[Long],
+//                        createdTimestamp: Option[DateTime],
+//                        updatedTimestamp: Option[DateTime])
 
 case class UserOutbound(id: Option[Long],
-                        email: String,
-                        nickname: Option[String],
-                        firstName: String,
-                        lastName: String,
-                        phoneNumber: Option[String],
-                        roles: String,
-                        bearerToken: Option[String],
-                        verifyEmail: Option[Boolean],
-                        retryEmail: Option[Int],
-                        verifyPhone: Option[Boolean],
-                        retryPhone: Option[Int],
-                        createdTimestamp: Option[DateTime],
-                        updatedTimestamp: Option[DateTime])
+                             email: String,
+                             nickname: Option[String],
+                             firstName: String,
+                             lastName: String,
+                             phoneNumber: Option[String],
+                             roles: String,
+                             bearerToken: Option[String],
+                             verifyEmail: Option[Boolean],
+                             retryEmail: Option[Int],
+                             verifyPhone: Option[Boolean],
+                             retryPhone: Option[Int],
+                             addressInfo: Option[AddressOutbound],
+                             createdTimestamp: Option[DateTime],
+                             updatedTimestamp: Option[DateTime])
 
-class UsersTableDef(tag: Tag) extends Table[UserIn](tag, Some("talachitas"), "users") {
+class UsersTableDef(tag: Tag) extends Table[UserModelIn](tag, Some("talachitas"), "users") {
 
   def id = column[Option[Long]]("id", O.PrimaryKey)
 
@@ -77,6 +112,8 @@ class UsersTableDef(tag: Tag) extends Table[UserIn](tag, Some("talachitas"), "us
 
   def retryPhone = column[Option[Int]]("retry_phone")
 
+  def addressId = column[Option[Long]]("address_id")
+
   override def * = (
     id,
     email,
@@ -90,10 +127,11 @@ class UsersTableDef(tag: Tag) extends Table[UserIn](tag, Some("talachitas"), "us
     verifyPhone,
     retryEmail,
     retryPhone,
+    addressId,
     createdTimestamp,
     updatedTimestamp,
     deleted
-  ) <> (UserIn.tupled, UserIn.unapply)
+  ) <> (UserModelIn.tupled, UserModelIn.unapply)
 }
 
 class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
@@ -108,6 +146,8 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
   this.dbConfig = customizedSlickConfig.createDbConfigCustomized(dbConfigProvider)
 
   val users = TableQuery[UsersTableDef]
+
+  val addresses = TableQuery[AddressTableDef]
 
   def updateVerifyEmail(email: String, verifyEmail: Option[Boolean], retryEmail: Option[Int]): Int = {
 
@@ -127,7 +167,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
     g
   }
 
-  def addUser(user: UserIn): Future[Int] = {
+  def addUser(user: UserModelIn): Future[Int] = {
 
     val f: Future[Int] = db.run(
       (users += user).transactionally)
@@ -156,115 +196,113 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 
   def listAll: Future[Seq[UserOutbound]] = {
 
-    db.run(users.filter(_.deleted === false).map(u =>
-      (
-        u.id,
-        u.email,
-        u.nickname,
-        u.password,
-        u.firstName,
-        u.lastName,
-        u.phoneNumber,
-        u.roles,
-        u.verifyEmail,
-        u.verifyPhone,
-        u.retryEmail,
-        u.retryPhone,
-        u.createdTimestamp,
-        u.updatedTimestamp,
-        u.deleted)).result.map(
+    val leftOuterJoin = for {
+      (u, a) <- users.filter(_.deleted === false) joinLeft addresses on (_.addressId === _.id)
+    } yield (
+      u, a
+    )
+
+    db.run(leftOuterJoin.result.map(
       _.seq.map {
-        case (
-          id,
-          email,
-          nickname,
-          password,
-          firstName,
-          lastName,
-          phoneNumber,
-          roles,
-          verifyEmail,
-          verifyPhone,
-          retryEmail,
-          retryPhone,
-          createdTimestamp,
-          updatedTimestamp,
-          deleted) =>
+        case (u, a) => {
+          val addressInfo: Option[AddressOutbound] =
+            if (a.map(_.id).getOrElse(0) == 0) {
+              None
+            } else {
+              Some(AddressOutbound(
+                a.map(_.id).flatten,
+                a.map(_.address1).get,
+                a.map(_.address2).get,
+                a.map(_.zipCode).get,
+                a.map(_.suffixZipCode).get,
+                a.map(_.state).get,
+                a.map(_.city).get,
+                a.map(_.country).get,
+                a.map(_.latitude).get,
+                a.map(_.longitude).get,
+                a.map(_.createdTimestamp).get))
+            }
+
           UserOutbound(
-            id,
-            email,
-            nickname,
-            firstName,
-            lastName,
-            phoneNumber,
-            roles,
+            u.id,
+            u.email,
+            u.nickname,
+            u.firstName,
+            u.lastName,
+            u.phoneNumber,
+            u.roles,
             None,
-            verifyEmail,
-            retryEmail,
-            verifyPhone,
-            retryPhone,
-            createdTimestamp,
-            updatedTimestamp)
+            u.verifyEmail,
+            u.retryEmail,
+            u.verifyPhone,
+            u.retryPhone,
+            addressInfo,
+            u.createdTimestamp,
+            u.updatedTimestamp)
+
+        }
       }
     )
     )
   }
 
+  def retrieveUserSync(id: Long): Option[UserOutbound] = {
+    val future: Future[Option[UserOutbound]] = retrieveUser(id)
+    val response: Option[UserOutbound] = Await.result(future, timeoutDatabaseSeconds)
+    response
+  }
+
   def retrieveUser(id: Long): Future[Option[UserOutbound]] = {
-    db.run(users.filter(u => u.id === id && u.deleted === false).map(
-      u => (
-        u.id,
-        u.email,
-        u.nickname,
-        u.password,
-        u.firstName,
-        u.lastName,
-        u.phoneNumber,
-        u.roles,
-        u.verifyEmail,
-        u.verifyPhone,
-        u.retryEmail,
-        u.retryPhone,
-        u.createdTimestamp,
-        u.updatedTimestamp,
-        u.deleted)).result.map(
+    val leftOuterJoin = for {
+      (u, a) <- users.filter(_.id === id).filter(_.deleted === false) joinLeft addresses on (_.addressId === _.id)
+    } yield (
+      u, a
+    )
+
+    db.run(leftOuterJoin.result.map(
       _.headOption.map {
-        case (
-          id,
-          email,
-          nickname,
-          password,
-          firstName,
-          lastName,
-          phoneNumber,
-          roles,
-          verifyEmail,
-          verifyPhone,
-          retryEmail,
-          retryPhone,
-          createdTimestamp,
-          updatedTimestamp,
-          deleted) =>
+        case (u, a) => {
+
+          val addressInfo: Option[AddressOutbound] =
+            if (a.map(_.id).getOrElse(0) == 0) {
+              None
+            } else {
+              Some(AddressOutbound(
+                a.map(_.id).flatten,
+                a.map(_.address1).get,
+                a.map(_.address2).get,
+                a.map(_.zipCode).get,
+                a.map(_.suffixZipCode).get,
+                a.map(_.state).get,
+                a.map(_.city).get,
+                a.map(_.country).get,
+                a.map(_.latitude).get,
+                a.map(_.longitude).get,
+                a.map(_.createdTimestamp).get))
+            }
+
           UserOutbound(
-            id,
-            email,
-            nickname,
-            firstName,
-            lastName,
-            phoneNumber,
-            roles,
+            u.id,
+            u.email,
+            u.nickname,
+            u.firstName,
+            u.lastName,
+            u.phoneNumber,
+            u.roles,
             None,
-            verifyEmail,
-            retryEmail,
-            verifyPhone,
-            retryPhone,
-            createdTimestamp,
-            updatedTimestamp)
+            u.verifyEmail,
+            u.retryEmail,
+            u.verifyPhone,
+            u.retryPhone,
+            addressInfo,
+            u.createdTimestamp,
+            u.updatedTimestamp)
+        }
       }
     ))
   }
 
-  def patchUser(user: UserIn): Future[Option[UserOutbound]] = {
+  def patchUser(user: UserModelIn): Future[Option[UserOutbound]] = {
 
     db.run(
       users.filter(u =>
@@ -275,6 +313,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
           u.firstName,
           u.lastName,
           u.phoneNumber,
+          u.addressId,
           u.updatedTimestamp
         )).update(
         user.nickname,
@@ -282,6 +321,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
         user.firstName,
         user.lastName,
         user.phoneNumber,
+        user.addressId,
         user.updatedTimestamp
       ).flatMap(x => {
 
@@ -299,6 +339,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             u.verifyPhone,
             u.retryEmail,
             u.retryPhone,
+            u.addressId,
             u.createdTimestamp,
             u.updatedTimestamp,
             u.deleted)).result.map(
@@ -316,6 +357,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
               verifyPhone,
               retryEmail,
               retryPhone,
+              addressId,
               createdTimestamp,
               updatedTimestamp,
               deleted) =>
@@ -332,6 +374,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
                 retryEmail,
                 verifyPhone,
                 retryPhone,
+                None,
                 createdTimestamp,
                 updatedTimestamp)
           }
@@ -341,104 +384,102 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 
   def retrieveUser(email: String, password: String): Future[Option[UserOutbound]] = {
 
-    db.run(users.filter(u => u.email === email && u.password === password).map(user =>
-      (
-        user.id,
-        user.email,
-        user.nickname,
-        user.firstName,
-        user.lastName,
-        user.phoneNumber,
-        user.roles,
-        user.verifyEmail,
-        user.retryEmail,
-        user.verifyPhone,
-        user.retryPhone,
-        user.createdTimestamp,
-        user.updatedTimestamp
-      )).result.map(
+    val leftOuterJoin = for {
+      (u, a) <- users.filter(_.email === email).filter(_.password === password).filter(_.deleted === false) joinLeft addresses on (_.addressId === _.id)
+    } yield (
+      u, a
+    )
+
+    db.run(leftOuterJoin.result.map(
       _.headOption.map {
-        case (
-          id,
-          email,
-          nickname,
-          firstName,
-          lastName,
-          phoneNumber,
-          roles,
-          verifyEmail,
-          retryEmail,
-          verifyPhone,
-          retryPhone,
-          createdTimestamp,
-          updatedTimestamp) =>
+        case (u, a) => {
+
+          val addressInfo: Option[AddressOutbound] =
+            if (a.map(_.id).getOrElse(0) == 0) {
+              None
+            } else {
+              Some(AddressOutbound(
+                a.map(_.id).flatten,
+                a.map(_.address1).get,
+                a.map(_.address2).get,
+                a.map(_.zipCode).get,
+                a.map(_.suffixZipCode).get,
+                a.map(_.state).get,
+                a.map(_.city).get,
+                a.map(_.country).get,
+                a.map(_.latitude).get,
+                a.map(_.longitude).get,
+                a.map(_.createdTimestamp).get))
+            }
+
           UserOutbound(
-            id,
-            email,
-            nickname,
-            firstName,
-            lastName,
-            phoneNumber,
-            roles,
+            u.id,
+            u.email,
+            u.nickname,
+            u.firstName,
+            u.lastName,
+            u.phoneNumber,
+            u.roles,
             None,
-            verifyEmail,
-            retryEmail,
-            verifyPhone,
-            retryPhone,
-            createdTimestamp,
-            updatedTimestamp)
+            u.verifyEmail,
+            u.retryEmail,
+            u.verifyPhone,
+            u.retryPhone,
+            addressInfo,
+            u.createdTimestamp,
+            u.updatedTimestamp)
+        }
       }
     ))
   }
 
   def retrieveUser(email: String): Future[Option[UserOutbound]] = {
 
-    db.run(users.filter(u => u.email === email).map(user =>
-      (
-        user.id,
-        user.email,
-        user.nickname,
-        user.firstName,
-        user.lastName,
-        user.phoneNumber,
-        user.roles,
-        user.verifyEmail,
-        user.retryEmail,
-        user.verifyPhone,
-        user.retryPhone,
-        user.createdTimestamp,
-        user.updatedTimestamp
-      )).result.map(
+    val leftOuterJoin = for {
+      (u, a) <- users.filter(_.email === email).filter(_.deleted === false) joinLeft addresses on (_.addressId === _.id)
+    } yield (
+      u, a
+    )
+
+    db.run(leftOuterJoin.result.map(
       _.headOption.map {
-        case (
-          id,
-          email,
-          nickname,
-          firstName,
-          lastName,
-          phoneNumber,
-          roles,
-          verifyEmail,
-          retryEmail,
-          verifyPhone,
-          retryPhone,
-          createdTimestamp,
-          updatedTimestamp) =>
+        case (u, a) => {
+
+          val addressInfo: Option[AddressOutbound] =
+            if (a.map(_.id).getOrElse(0) == 0) {
+              None
+            } else {
+              Some(AddressOutbound(
+                a.map(_.id).flatten,
+                a.map(_.address1).get,
+                a.map(_.address2).get,
+                a.map(_.zipCode).get,
+                a.map(_.suffixZipCode).get,
+                a.map(_.state).get,
+                a.map(_.city).get,
+                a.map(_.country).get,
+                a.map(_.latitude).get,
+                a.map(_.longitude).get,
+                a.map(_.createdTimestamp).get))
+            }
+
           UserOutbound(
-            id,
-            email,
-            nickname,
-            firstName,
-            lastName,
-            phoneNumber,
-            roles,
+            u.id,
+            u.email,
+            u.nickname,
+            u.firstName,
+            u.lastName,
+            u.phoneNumber,
+            u.roles,
             None,
-            verifyEmail,
-            retryEmail,
-            verifyPhone,
-            retryPhone,
-            createdTimestamp,
-            updatedTimestamp)
+            u.verifyEmail,
+            u.retryEmail,
+            u.verifyPhone,
+            u.retryPhone,
+            addressInfo,
+            u.createdTimestamp,
+            u.updatedTimestamp)
+        }
       }
     ))
   }

@@ -2,7 +2,7 @@ package controllers
 
 import formatter._
 import javax.inject.Inject
-import models.{Restaurant, Restaurants}
+import models.{Addresses, Restaurant, RestaurantModel, Restaurants}
 import org.joda.time.DateTime
 import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.mvc._
@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Restaurants)
+class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Restaurants, addressService: Addresses)
                                     (implicit context: ExecutionContext,
                                      metricsService: MetricsService,
                                      interMessage: CustomizedLanguageService,
@@ -45,36 +45,41 @@ class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Rest
     jsonBody.map {
       json =>
 
-        val resultVal: JsResult[RestaurantInbound] = json.validate[RestaurantInbound]
+        val resultVal: JsResult[Restaurant] = json.validate[Restaurant]
 
         resultVal.asOpt.map { restaurantInboud =>
 
-          val newRestaurant = Restaurant(
-            None,
-            restaurantInboud.businessName,
-            restaurantInboud.address1,
-            restaurantInboud.address2,
-            restaurantInboud.zipCode,
-            restaurantInboud.suffixZipCode,
-            restaurantInboud.state,
-            restaurantInboud.city,
-            restaurantInboud.country,
-            restaurantInboud.phoneNumber,
-            restaurantInboud.latitude,
-            restaurantInboud.longitude,
-            None,
-            None,
-            false)
+          var addressId: Option[Long] = addressService.retrieveAddressPerPrimaryKey(Some(restaurantInboud.addressInfo)).map(_.id).getOrElse(None)
+          //if the address was not there in the table,
+          //but user wants to update his/her address
+          if (addressId.getOrElse(0) == 0 && addressService.receivingPrimaryKeyQuestion(Some(restaurantInboud.addressInfo))) {
+            val addressResult: Option[Long] = addressService.add(restaurantInboud.addressInfo)
+            addressId = addressResult
 
-          restaurants.add(newRestaurant) map { restaurant =>
-            val restaurantString:Option[String] = Some(Json.stringify(Json.toJson(restaurant)))
-            val message: String = interMessage.customizedLanguageMessage(language, "restaurant.creation.success", "")
-            Created(Json.toJson(SuccessMessage(OK, message, restaurantString))).withHeaders(util.headersCors: _*)
+            val newRestaurant = RestaurantModel(
+              None,
+              restaurantInboud.businessName,
+              restaurantInboud.phoneNumber,
+              restaurantInboud.averageWaitingTime,
+              addressId.get,
+              None,
+              None,
+              false)
+
+            restaurants.add(newRestaurant) map { restaurant =>
+              val restaurantString:Option[String] = Some(Json.stringify(Json.toJson(restaurant)))
+              val message: String = interMessage.customizedLanguageMessage(language, "restaurant.creation.success", "")
+              Created(Json.toJson(SuccessMessage(OK, message, restaurantString))).withHeaders(util.headersCors: _*)
+            }
+
+          } else {
+            val message: String = interMessage.customizedLanguageMessage(language, "restaurant.creation.error", "")
+            Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
           }
+
         } getOrElse {
           val message: String = interMessage.customizedLanguageMessage(language, "restaurant.creation.error", "")
           Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
-
         }
     } getOrElse {
       val message: String = interMessage.customizedLanguageMessage(language, "restaurant.body.error", "")
@@ -106,23 +111,24 @@ class RestaurantController @Inject()(cc: ControllerComponents, restaurants: Rest
     jsonBody.map {
       json =>
 
-        val resultVal: JsResult[RestaurantInbound] = json.validate[RestaurantInbound]
+        val resultVal: JsResult[Restaurant] = json.validate[Restaurant]
 
         resultVal.asOpt.map { restaurantInboud =>
 
-          val patchRestaurant = Restaurant(
+          var addressId: Option[Long] = addressService.retrieveAddressPerPrimaryKey(Some(restaurantInboud.addressInfo)).map(_.id).getOrElse(None)
+          //if the address was not there in the table,
+          //but user wants to update his/her address
+          if (addressId.getOrElse(0) == 0 && addressService.receivingPrimaryKeyQuestion(Some(restaurantInboud.addressInfo))) {
+            val addressResult: Option[Long] = addressService.add(restaurantInboud.addressInfo)
+            addressId = addressResult
+          }
+
+          val patchRestaurant = RestaurantModel(
             Some(id),
             restaurantInboud.businessName,
-            restaurantInboud.address1,
-            restaurantInboud.address2,
-            restaurantInboud.zipCode,
-            restaurantInboud.suffixZipCode,
-            restaurantInboud.state,
-            restaurantInboud.city,
-            restaurantInboud.country,
             restaurantInboud.phoneNumber,
-            restaurantInboud.latitude,
-            restaurantInboud.longitude,
+            restaurantInboud.averageWaitingTime,
+            addressId.get,
             None,
             Some(DateTime.now()),
             false)

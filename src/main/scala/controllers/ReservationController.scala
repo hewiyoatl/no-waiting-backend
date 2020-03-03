@@ -2,7 +2,9 @@ package controllers
 
 import formatter._
 import javax.inject.Inject
-import models.{Reservation, Reservations}
+import models._
+import org.joda.time.DateTime
+import play.api.Configuration
 import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.mvc._
 import services.{CustomizedLanguageService, LanguageAction, MetricsService}
@@ -12,11 +14,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class ReservationController @Inject()(cc: ControllerComponents, reservations: Reservations)
+class ReservationController @Inject()(cc: ControllerComponents,
+                                      reservations: Reservations,
+                                      restaurants: Restaurants,
+                                      usersService: Users)
                                      (implicit context: ExecutionContext,
                                       metricsService: MetricsService,
                                       interMessage: CustomizedLanguageService,
                                       languageAction: LanguageAction,
+                                      config: Configuration,
                                       util: Util) extends AbstractController(cc) {
 
   implicit val reservationReader = ReservationFormatter.ReservationReader
@@ -27,14 +33,29 @@ class ReservationController @Inject()(cc: ControllerComponents, reservations: Re
 
   implicit val successWriter = SuccessMessageFormatter.successWriter
 
-  def listReservations(location: Option[Long]) = languageAction.async { implicit request =>
+  def searchReservations(fields: String, values: String) = languageAction.async { implicit request =>
     val language: String = request.acceptLanguages.head.code
-    reservations.listAll(location) map { reservations =>
+
+    if (fields == "status") {
+
+    }
+
+    reservations.listAll(values) map { reservations =>
       val listReservations:Option[String] = Some(Json.stringify(Json.toJson(reservations)))
       val message: String = interMessage.customizedLanguageMessage(language, "reservation.list.success", "")
       Ok(Json.toJson(SuccessMessage(OK, message, listReservations))).withHeaders(util.headersCors: _*)
     }
   }
+
+  def listReservations = languageAction.async { implicit request =>
+    val language: String = request.acceptLanguages.head.code
+    reservations.listAll map { reservations =>
+      val listReservations:Option[String] = Some(Json.stringify(Json.toJson(reservations)))
+      val message: String = interMessage.customizedLanguageMessage(language, "reservation.list.success", "")
+      Ok(Json.toJson(SuccessMessage(OK, message, listReservations))).withHeaders(util.headersCors: _*)
+    }
+  }
+
 
   def addReservation = languageAction.async { implicit request =>
     val language: String = request.acceptLanguages.head.code
@@ -42,31 +63,44 @@ class ReservationController @Inject()(cc: ControllerComponents, reservations: Re
     val jsonBody: Option[JsValue] = body.asJson
 
     jsonBody.map {
-      json =>
+      json => {
+        val resultVal: JsResult[Reservation] = json.validate[Reservation]
 
-        val resultVal: JsResult[ReservationInbound] = json.validate[ReservationInbound]
+        resultVal.asOpt.map { reservationInbound =>
 
-        resultVal.asOpt.map { reservationInboud =>
+          val userInfo: UserOutbound = usersService.retrieveUserSync(reservationInbound.userId).get
 
-          val reservationUser = Reservation(
+          val restaurantInfo: RestaurantOutbound = restaurants.retrieveRestaurantSync(reservationInbound.restaurantId).get
+
+          val currentTime = DateTime.now
+
+          val reservationUser = ReservationModel(
             None,
-            reservationInboud.userId,
-            reservationInboud.userType,
-            reservationInboud.restaurantId,
-            Some(1),
-            None)
+            reservationInbound.userId,
+            reservationInbound.restaurantId,
+            ReservationStatus.STARTED,
+            None,
+            userInfo.addressInfo.get.id.get,
+            restaurantInfo.addressInfo.get.id.get,
+            restaurantInfo.averageWaitingTime,
+            0L,
+            Some(currentTime),
+            Some(currentTime),
+            false)
 
-          reservations.add(reservationUser) map { reservation =>
-            val reservationString:Option[String] = Some(Json.stringify(Json.toJson(reservation)))
-            val message: String = interMessage.customizedLanguageMessage(language, "reservation.creation.success", "")
-            Created(Json.toJson(SuccessMessage(OK, message, reservationString))).withHeaders(util.headersCors: _*)
+
+          reservations.add(reservationUser).map {  resId =>
+            val message: String = interMessage.customizedLanguageMessage(language, "reservation.creation.success")
+            Created(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*)
           }
+
         } getOrElse {
-          val message: String = interMessage.customizedLanguageMessage(language, "reservation.creation.error", "")
+          val message: String = interMessage.customizedLanguageMessage(language, "reservation.creation.error")
           Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
         }
+      }
     } getOrElse {
-      val message: String = interMessage.customizedLanguageMessage(language, "reservation.body.error", "")
+      val message: String = interMessage.customizedLanguageMessage(language, "reservation.body.error")
       Future(BadRequest(Json.toJson(ErrorMessage(BAD_REQUEST, message))).withHeaders(util.headersCors: _*))
     }
   }
@@ -74,7 +108,7 @@ class ReservationController @Inject()(cc: ControllerComponents, reservations: Re
   def deleteReservation(id: Long) = languageAction.async { implicit request =>
     val language: String = request.acceptLanguages.head.code
     reservations.delete(id)
-    val message: String = interMessage.customizedLanguageMessage(language, "reservation.delete.success", "")
+    val message: String = interMessage.customizedLanguageMessage(language, "reservation.delete.success")
     Future(Ok(Json.toJson(SuccessMessage(OK, message, None))).withHeaders(util.headersCors: _*))
   }
 
@@ -82,7 +116,7 @@ class ReservationController @Inject()(cc: ControllerComponents, reservations: Re
     val language: String = request.acceptLanguages.head.code
     reservations.retrieveReservation(id) map { reservation =>
       val reservationString:Option[String] = Some(Json.stringify(Json.toJson(reservation)))
-      val message: String = interMessage.customizedLanguageMessage(language, "reservation.retrieve.success", "")
+      val message: String = interMessage.customizedLanguageMessage(language, "reservation.retrieve.success")
       Ok(Json.toJson(SuccessMessage(OK, message, reservationString))).withHeaders(util.headersCors: _*)
     }
   }
@@ -95,17 +129,25 @@ class ReservationController @Inject()(cc: ControllerComponents, reservations: Re
     jsonBody.map {
       json =>
 
-        val resultVal: JsResult[ReservationInbound] = json.validate[ReservationInbound]
+        val resultVal: JsResult[Reservation] = json.validate[Reservation]
 
         resultVal.asOpt.map { reservationInboud =>
 
-          val reservationReservation = Reservation(
+          val currentTime = DateTime.now
+
+          val reservationReservation = ReservationModel(
             Some(id),
             reservationInboud.userId,
-            reservationInboud.userType,
             reservationInboud.restaurantId,
             reservationInboud.status,
-            None)
+            reservationInboud.comments,
+            0L,//reservationInboud.sourceLatitude,
+            0L,//reservationInboud.sourceLongitude,
+            0L, // does not update
+            0L, // does not update
+            None,
+            Some(currentTime),
+            false)
 
           reservations.patchReservation(reservationReservation) map { reservation =>
             val reservationString:Option[String] = Some(Json.stringify(Json.toJson(reservation)))

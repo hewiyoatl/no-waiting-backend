@@ -4,7 +4,7 @@ import java.security.spec.{ECParameterSpec, ECPoint, ECPrivateKeySpec, ECPublicK
 import java.security.{KeyFactory, PrivateKey, PublicKey}
 
 import javax.inject.Inject
-import models.{UserIn, UserOutbound}
+import models.{UserIn, UserModelIn, UserOutbound}
 import org.bouncycastle.jce.ECNamedCurveTable
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.jce.spec.ECNamedCurveSpec
@@ -234,12 +234,14 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
       "first_name" -> JsString(user.firstName),
       "last_name" -> JsString(user.lastName),
       "roles" -> Json.toJson(user.roles.map(x => x)),
+      "phone_number" -> JsString(user.phoneNumber.getOrElse("")),
+      "user_id" -> JsString(String.valueOf(user.id.getOrElse(0))),
       "nickname" -> user.nickname.map(JsString(_)),
       "bearer_token" -> token)
 
   }
 
-  def provideTokenEmailVerification(userIn: UserIn, language: String): String = {
+  def provideTokenEmailVerification(userIn: UserModelIn, language: String): String = {
 
     val message =    s""" {"email":"${userIn.email}",
                           |"first_name":"${userIn.firstName}",
@@ -256,7 +258,7 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
     token
   }
 
-  def provideTokenResetAccount(userIn: UserIn, language: String): String = {
+  def provideTokenResetAccount(userIn: UserModelIn, language: String): String = {
 
     val message =    s""" {"email":"${userIn.email}",
                           |"first_name":"${userIn.firstName}",
