@@ -33,7 +33,7 @@ class Contacts @Inject()(val dbConfigProvider: DatabaseConfigProvider,
         case (email, subject, message, phoneNumber) =>
           Contact(email, subject, message, phoneNumber)
       }
-    ))
+    ).transactionally)
   }
 
   def add(contactUser: ContactTable): Future[Option[Contact]] = {
@@ -47,7 +47,7 @@ class Contacts @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 
   def deleteContact(email: String): Future[Int] = {
 
-    db.run(contacts.filter(_.email === email).delete)
+    db.run(contacts.filter(_.email === email).delete.transactionally)
   }
 
   class ContactTableDef(tag: Tag) extends Table[ContactTable](tag, Some("talachitas"), "contact") {

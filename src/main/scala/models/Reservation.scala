@@ -140,7 +140,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
   }
 
   def delete(id: Long): Future[Int] = {
-    db.run(reservations.filter(_.id === id).map(u => u.deleted).update(true))
+    db.run(reservations.filter(_.id === id).map(u => u.deleted).update(true).transactionally)
   }
 
   def listAll(status: String): Future[Seq[ReservationOutbound]] = {
@@ -202,7 +202,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
         }
       }
 
-    ))
+    ).transactionally)
   }
 
   def listArchiveReservation: Future[Seq[ReservationOutbound]] = {
@@ -265,7 +265,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
         }
       }
 
-    ))
+    ).transactionally)
   }
 
   def listActiveReservation: Future[Seq[ReservationOutbound]] = {
@@ -329,7 +329,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
         }
       }
 
-    ))
+    ).transactionally)
   }
 
   def reservationsToProcess: Future[Seq[ReservationOutbound]] = {
@@ -357,7 +357,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             r.createdTimestamp,
             r.updatedTimestamp)
       }
-    )
+    ).transactionally
     )
   }
 
@@ -421,7 +421,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
         }
       }
 
-    ))
+    ).transactionally)
   }
 
   def patchReservation(reservation: ReservationModel): Future[Option[ReservationOutbound]] = {
@@ -442,7 +442,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
   def updateWaitingTime(reservationId: Long, waitingTimeCounting: Long): Int = {
 
     val future: Future[Int] = db.run(reservations.filter(u => u.id === reservationId && u.deleted === false)
-      .map(r => (r.waitingTimeCounting)).update(waitingTimeCounting))
+      .map(r => (r.waitingTimeCounting)).update(waitingTimeCounting).transactionally)
 
     val g = Await.result(future, timeoutDatabaseSeconds)
 
