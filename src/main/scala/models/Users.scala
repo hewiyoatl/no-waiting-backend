@@ -151,7 +151,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 
   def updateVerifyEmail(email: String, verifyEmail: Option[Boolean], retryEmail: Option[Int]): Int = {
 
-    val future: Future[Int] = db.run(users.filter(u => u.email === email).map(user => (user.verifyEmail, user.retryEmail)).update(verifyEmail, retryEmail))
+    val future: Future[Int] = db.run(users.filter(u => u.email === email).map(user => (user.verifyEmail, user.retryEmail)).update(verifyEmail, retryEmail).transactionally)
 
     val g = Await.result(future, timeoutDatabaseSeconds)
 
@@ -160,7 +160,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 
   def updateVerifyEmailAndPassword(password: Option[String], email: String, verifyEmail: Option[Boolean], retryEmail: Option[Int]): Int = {
 
-    val future: Future[Int] = db.run(users.filter(u => u.email === email).map(user => (user.password, user.verifyEmail, user.retryEmail)).update(password, verifyEmail, retryEmail))
+    val future: Future[Int] = db.run(users.filter(u => u.email === email).map(user => (user.password, user.verifyEmail, user.retryEmail)).update(password, verifyEmail, retryEmail).transactionally)
 
     val g = Await.result(future, timeoutDatabaseSeconds)
 
@@ -191,7 +191,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
   }
 
   def delete(id: Long): Future[Int] = {
-    db.run(users.filter(_.id === id).map(u => u.deleted).update(Some(true)))
+    db.run(users.filter(_.id === id).map(u => u.deleted).update(Some(true)).transactionally)
   }
 
   def listAll: Future[Seq[UserOutbound]] = {
@@ -242,7 +242,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
 
         }
       }
-    )
+    ).transactionally
     )
   }
 
@@ -299,7 +299,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             u.updatedTimestamp)
         }
       }
-    ))
+    ).transactionally)
   }
 
   def patchUser(user: UserModelIn): Future[Option[UserOutbound]] = {
@@ -430,7 +430,7 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             u.updatedTimestamp)
         }
       }
-    ))
+    ).transactionally)
   }
 
   def retrieveUser(email: String): Future[Option[UserOutbound]] = {
@@ -481,17 +481,17 @@ class Users @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             u.updatedTimestamp)
         }
       }
-    ))
+    ).transactionally)
   }
 
   def verifyUser(email: String): Future[Boolean] = {
 
-    db.run(users.filter(u => u.email === email).exists.result)
+    db.run(users.filter(u => u.email === email).exists.result.transactionally)
   }
 
   def verifyUserVerification(email: String): Future[Boolean] = {
 
-    db.run(users.filter(u => u.email === email && u.verifyEmail.getOrElse(false) == true).exists.result)
+    db.run(users.filter(u => u.email === email && u.verifyEmail.getOrElse(false) == true).exists.result.transactionally)
   }
 
 }

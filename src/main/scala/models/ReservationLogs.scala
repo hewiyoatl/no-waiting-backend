@@ -126,7 +126,7 @@ class ReservationLogs @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             case (id, reservationId, status, comments, createdTimestamp, updatedTimestamp) =>
               ReservationLogsOutbound(id, reservationId, status, comments, createdTimestamp, updatedTimestamp)
           }
-        )
+        ).transactionally
     )
   }
 

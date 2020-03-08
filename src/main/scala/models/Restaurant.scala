@@ -107,7 +107,7 @@ class Restaurants @Inject()(val dbConfigProvider: DatabaseConfigProvider,
   }
 
   def delete(id: Long): Future[Int] = {
-    db.run(restaurants.filter(_.id === id).map(u => u.deleted).update(true))
+    db.run(restaurants.filter(_.id === id).map(u => u.deleted).update(true).transactionally)
   }
 
   def listAll: Future[Seq[RestaurantOutbound]] = {
@@ -149,7 +149,7 @@ class Restaurants @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             r.updatedTimestamp)
         }
       }
-    )
+    ).transactionally
     )
   }
 
@@ -198,7 +198,7 @@ class Restaurants @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             r.updatedTimestamp)
         }
       }
-    ))
+    ).transactionally)
   }
 
   def patchRestaurant(restaurant: RestaurantModel): Future[Option[RestaurantOutbound]] = {

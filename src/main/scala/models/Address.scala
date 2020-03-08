@@ -104,7 +104,7 @@ class Addresses @Inject()(val dbConfigProvider: DatabaseConfigProvider,
   }
 
   def delete(id: Long): Future[Int] = {
-    db.run(addresses.filter(_.id === id).map(u => u.deleted).update(true))
+    db.run(addresses.filter(_.id === id).map(u => u.deleted).update(true).transactionally)
   }
 
   def receivingPrimaryKeyQuestion(addressIn: Option[Address]): Boolean = {
@@ -209,7 +209,7 @@ class Addresses @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             createdTimestamp
           )
       }
-    ))
+    ).transactionally)
 
     val response: Option[AddressOutbound] = Await.result(future, timeoutDatabaseSeconds)
     response
