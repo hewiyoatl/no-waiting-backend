@@ -17,6 +17,10 @@ GET       /talachitas/noqueue/v1/reservations                       controllers.
 POST      /talachitas/noqueue/v1/reservations                       controllers.ReservationController.addReservation
 OPTIONS   /talachitas/noqueue/v1/reservations                       controllers.OptionsController.options
 
+GET       /talachitas/noqueue/v1/reservations/archive                       controllers.ReservationController.listArchiveReservations
+#POST      /talachitas/noqueue/v1/reservations                       controllers.ReservationController.addReservation
+OPTIONS   /talachitas/noqueue/v1/reservations/archive                       controllers.OptionsController.options
+
 DELETE    /talachitas/noqueue/v1/reservations/:id                   controllers.ReservationController.deleteReservation(id : Long)
 GET       /talachitas/noqueue/v1/reservations/:id                   controllers.ReservationController.retrieveReservation(id: Long)
 PATCH     /talachitas/noqueue/v1/reservations/:id                   controllers.ReservationController.patchReservation(id: Long)

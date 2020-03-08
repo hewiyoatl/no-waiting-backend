@@ -1,6 +1,6 @@
 package formatter
 
-import models.{Address, AddressOutbound, Reservation, ReservationOutbound}
+import models._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
@@ -37,7 +37,7 @@ object ReservationFormatter {
       (JsPath \ "deleted").readNullable[Boolean]
     )(Reservation.apply _)
 
-  val ReservationWriter: Writes[ReservationOutbound] = (
+  implicit val ReservationWriter: Writes[ReservationOutbound] = (
     (JsPath \ "id").writeNullable[Long] and
       (JsPath \ "user_id").write[Long] and
       (JsPath \ "user_name").write[String] and
@@ -49,8 +49,23 @@ object ReservationFormatter {
       (JsPath \ "destination_address_info").writeNullable[AddressOutbound] and
       (JsPath \ "waiting_time_creation").write[Long] and
       (JsPath \ "waiting_time_counting").write[Long] and
+      (JsPath \ "deleted").write[Boolean] and
       (JsPath \ "created_timestamp").writeNullable[DateTime](jodaDateWrites) and
       (JsPath \ "updated_timestamp").writeNullable[DateTime](jodaDateWrites)
     )(unlift(ReservationOutbound.unapply))
+
+  implicit val ReservationLogWriter: Writes[ReservationLogsOutbound] = (
+    (JsPath \ "id").writeNullable[Long] and
+      (JsPath \ "reservation_id").writeNullable[Long] and
+      (JsPath \ "status").writeNullable[String] and
+      (JsPath \ "comments").writeNullable[String] and
+      (JsPath \ "created_timestamp").writeNullable[DateTime](jodaDateWrites) and
+      (JsPath \ "updated_timestamp").writeNullable[DateTime](jodaDateWrites)
+    )(unlift(ReservationLogsOutbound.unapply))
+
+  val ReservationWriterWithLogs: Writes[ReservationOutboundWithLogs] = (
+    (JsPath \ "reservation").write[ReservationOutbound] and
+      (JsPath \ "reservation_logs").writeNullable[Seq[ReservationLogsOutbound]]
+    )(unlift(ReservationOutboundWithLogs.unapply))
 }
 

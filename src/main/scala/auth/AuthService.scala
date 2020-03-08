@@ -115,8 +115,12 @@ class AuthService @Inject()(config: Configuration, encryptDecryptService: Encryp
 
     val isUser: Boolean = roles.map(_.contains("User")).getOrElse(false)
 
+    val isClient: Boolean = roles.map(_.contains("Client")).getOrElse(false)
+
+    val isAdmin: Boolean = roles.map(_.contains("Admin")).getOrElse(false)
+
     if (claims.expiration.get > System.currentTimeMillis) {
-      if (isUser) {
+      if (isUser || isClient || isAdmin) {
         Success(claims)
       } else {
         Failure(new Exception("Unable to grant this operation for this, check your privileges"))
