@@ -164,3 +164,6 @@ add column destination_address_id bigint not null;
 alter table talachitas.reservation
 ADD FOREIGN KEY (source_address_id) REFERENCES users(address_id),
 add foreign key (destination_address_id) references restaurant(address_id);
+
+alter table talachitas.reservation_logs
+add column comments varchar(100);

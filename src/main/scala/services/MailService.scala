@@ -2,7 +2,7 @@ package services
 
 import javax.inject.Inject
 import org.apache.commons.mail.{HtmlEmail, MultiPartEmail}
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 import play.api.libs.mailer._
 
 class MailerClientTalachitas @Inject() (config: Configuration,
@@ -53,6 +53,16 @@ class MailerService @Inject() (config: Configuration,
 
   private final val resetAccountTemplate : String = scala.io.Source.fromFile(resourcesDirectory + "templatesDirectory" + "/resetAccount.html").getLines().mkString
 
+  private final val notifyInQueueTemplate : String = scala.io.Source.fromFile(resourcesDirectory + "templatesDirectory" + "/notifyInQueue.html").getLines().mkString
+
+  private final val notifyAvailableTemplate : String = scala.io.Source.fromFile(resourcesDirectory + "templatesDirectory" + "/notifyAvailable.html").getLines().mkString
+
+  private final val notifyCancelledTemplate : String = scala.io.Source.fromFile(resourcesDirectory + "templatesDirectory" + "/notifyCancelled.html").getLines().mkString
+
+  private final val notifyCompletedTemplate : String = scala.io.Source.fromFile(resourcesDirectory + "templatesDirectory" + "/notifyCompleted.html").getLines().mkString
+
+  val logger: Logger = Logger(this.getClass())
+
   private def sendEmailHtml(subject: String, from: String, to: Seq[String], bodyHtml: String) = {
 
     //how to send Seq[("", "")]
@@ -89,4 +99,37 @@ class MailerService @Inject() (config: Configuration,
       .replaceAll("resetAccountLink.html", redirectService.ENGLISH_DOMAIN_APP + "resetAccountLink.html?resetAccountVerification=" + resetAccountWithToken)
     this.sendEmailHtml(subject, senderEmail, Seq(to, adminEmail),  replaceVariables)
   }
+
+  def sendEmailNotifyInQueue(subject: String, to: String, welcomeMessage: String): String = {
+    val replaceVariables = notifyInQueueTemplate
+      .replaceAll("<welcomeMessage />", welcomeMessage)
+//      .replaceAll("resetAccountLink.html", redirectService.ENGLISH_DOMAIN_APP + "resetAccountLink.html")
+    this.sendEmailHtml(subject, senderEmail, Seq(to, adminEmail),  replaceVariables)
+  }
+
+  def sendEmailNotifyAvailable(subject: String, to: String, welcomeMessage: String, googleMapsUrl: String): String = {
+//    val googleURLEncode: String = URLEncoder.encode(googleMapsUrl, StandardCharsets.UTF_8.toString)
+    val replaceVariables = notifyAvailableTemplate
+      .replaceAll("<welcomeMessage />", welcomeMessage)
+      .replaceAll("<googleMaps />", s"""<a href="$googleMapsUrl">Enjoy your meal!</a>""")
+//    logger.debug("Email for notify available 1 " + replaceVariables)
+//    val replaceAgain = replaceVariables.replaceAll("<googleMaps />", s"""<a href="$googleMapsUrl">Enjoy your meal!</a>""")
+    logger.debug("Email Replace all for notify available " + replaceVariables)
+    this.sendEmailHtml(subject, senderEmail, Seq(to, adminEmail),  replaceVariables)
+  }
+
+  def sendEmailNotifyCancelled(subject: String, to: String, welcomeMessage: String): String = {
+    val replaceVariables = notifyCancelledTemplate
+      .replaceAll("<welcomeMessage />", welcomeMessage)
+    //      .replaceAll("resetAccountLink.html", redirectService.ENGLISH_DOMAIN_APP + "resetAccountLink.html")
+    this.sendEmailHtml(subject, senderEmail, Seq(to, adminEmail),  replaceVariables)
+  }
+
+  def sendEmailNotifyCompleted(subject: String, to: String, welcomeMessage: String): String = {
+    val replaceVariables = notifyCompletedTemplate
+      .replaceAll("<welcomeMessage />", welcomeMessage)
+    //      .replaceAll("resetAccountLink.html", redirectService.ENGLISH_DOMAIN_APP + "resetAccountLink.html")
+    this.sendEmailHtml(subject, senderEmail, Seq(to, adminEmail),  replaceVariables)
+  }
+
 }

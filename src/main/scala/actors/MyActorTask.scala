@@ -15,7 +15,7 @@ class CodeBlockTask @Inject() (actorSystem: ActorSystem, reservations: Reservati
 
   val logger: Logger = Logger(this.getClass())
 
-  val intervalValueSeconds = 5
+  val intervalValueSeconds = 60
 
   val timeoutDatabaseSeconds = config.get[Duration]("talachitas.dbs.timeout")
 

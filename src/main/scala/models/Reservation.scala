@@ -58,8 +58,12 @@ case class ReservationOutbound(id: Option[Long],
                                destinationAddress: Option[AddressOutbound],
                                waitingTimeCreation: Long,
                                waitingTimeCounting: Long,
+                               deleted: Boolean,
                                createdTimestamp: Option[DateTime],
                                updatedTimestamp: Option[DateTime])
+
+case class ReservationOutboundWithLogs(reservation: ReservationOutbound,
+                                       reservationLogs: Option[Seq[ReservationLogsOutbound]])
 
 //needed to parse dates for slick
 import utilities.DateTimeMapper._
@@ -192,6 +196,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             Some(addressInfoRestaurant),
             r.waitingTimeCreation,
             r.waitingTimeCounting,
+            r.deleted,
             r.createdTimestamp,
             r.updatedTimestamp)
         }
@@ -200,10 +205,74 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
     ))
   }
 
-  def listAll: Future[Seq[ReservationOutbound]] = {
+  def listArchiveReservation: Future[Seq[ReservationOutbound]] = {
 
     val monadicInnerJoin = for {
-      r   <- reservations if (r.deleted === false)
+      r   <- reservations if (r.deleted === false && r.status === ReservationStatus.COMPLETED || r.status === ReservationStatus.CANCELLED)
+      rest <- restaurants if (r.restaurantId === rest.id)
+      addressRestaurant <- addresses if (addressRestaurant.id === rest.addressId)
+      u   <- users if (u.id === r.userId)
+      addressUser <- addresses if (addressUser.id === u.addressId)
+    } yield (r, rest, addressRestaurant, u, addressUser)
+
+    db.run(monadicInnerJoin.result.map(
+      _.seq.map {
+        case (r, rest, addressRestaurant, u, addressUser) => {
+
+          val addressInfoUser: AddressOutbound =
+            AddressOutbound(
+              addressUser.id,
+              addressUser.address1,
+              addressUser.address2,
+              addressUser.zipCode,
+              addressUser.suffixZipCode,
+              addressUser.state,
+              addressUser.city,
+              addressUser.country,
+              addressUser.latitude,
+              addressUser.longitude,
+              addressUser.createdTimestamp)
+
+          val addressInfoRestaurant: AddressOutbound =
+            AddressOutbound(
+              addressRestaurant.id,
+              addressRestaurant.address1,
+              addressRestaurant.address2,
+              addressRestaurant.zipCode,
+              addressRestaurant.suffixZipCode,
+              addressRestaurant.state,
+              addressRestaurant.city,
+              addressRestaurant.country,
+              addressRestaurant.latitude,
+              addressRestaurant.longitude,
+              addressRestaurant.createdTimestamp)
+
+          ReservationOutbound(
+            r.id,
+            u.id.getOrElse(0),
+            u.firstName + " " + u.lastName,
+            rest.id.getOrElse(0),
+            rest.businessName,
+            r.status,
+            r.comments,
+            Some(addressInfoUser),
+            Some(addressInfoRestaurant),
+            r.waitingTimeCreation,
+            r.waitingTimeCounting,
+            r.deleted,
+            r.createdTimestamp,
+            r.updatedTimestamp)
+        }
+      }
+
+    ))
+  }
+
+  def listActiveReservation: Future[Seq[ReservationOutbound]] = {
+
+    val monadicInnerJoin = for {
+//      r   <- reservations if (r.deleted === false && r.status =!= ReservationStatus.CANCELLED)
+      r   <- reservations if (r.deleted === false && (r.status === ReservationStatus.STARTED || r.status === ReservationStatus.IN_QUEUE || r.status === ReservationStatus.AVAILABLE))
       rest <- restaurants if (r.restaurantId === rest.id)
       addressRestaurant <- addresses if (addressRestaurant.id === rest.addressId)
       u   <- users if (u.id === r.userId)
@@ -254,6 +323,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             Some(addressInfoRestaurant),
             r.waitingTimeCreation,
             r.waitingTimeCounting,
+            r.deleted,
             r.createdTimestamp,
             r.updatedTimestamp)
         }
@@ -283,6 +353,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             None,
             r.waitingTimeCreation,
             r.waitingTimeCounting,
+            r.deleted,
             r.createdTimestamp,
             r.updatedTimestamp)
       }
@@ -344,6 +415,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
             Some(addressInfoRestaurant),
             r.waitingTimeCreation,
             r.waitingTimeCounting,
+            r.deleted,
             r.createdTimestamp,
             r.updatedTimestamp)
         }
@@ -361,7 +433,7 @@ class Reservations @Inject()(val dbConfigProvider: DatabaseConfigProvider,
           u => (u.id, u.userId, u.restaurantId, u.status, u.comments, u.sourceAddressId, u.destinationAddressId, u.waitingTimeCreation, u.waitingTimeCounting, u.createdTimestamp, u.updatedTimestamp, u.deleted)).result.map(
             _.headOption.map {
               case (id, userId, restaurantId, status, comments, sourceAddressId, destinationAddressId, waitingTimeCreation, waitingTimeCounting, createdTimestamp, updatedTimestamp, deleted) =>
-                ReservationOutbound(id, userId, "", restaurantId, "", status, comments, None, None, waitingTimeCreation, waitingTimeCounting, createdTimestamp, updatedTimestamp)
+                ReservationOutbound(id, userId, "", restaurantId, "", status, comments, None, None, waitingTimeCreation, waitingTimeCounting, deleted, createdTimestamp, updatedTimestamp)
             }
           )
       }).transactionally)

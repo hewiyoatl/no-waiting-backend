@@ -58,6 +58,18 @@ user.add.body.error=User body request not parse correctly
 ########### send email verification
 user.send.email.verification.subject=Talachitas.com - Verify Email {0} {1}
 user.send.email.verification.body={0} {1}, you have received your verification email
+########### send email notify user
+user.send.email.notify.in_queue.subject=Talachitas.com - Notify Restaurant InQueue {0} {1}
+user.send.email.notify.in_queue.body={0} {1}, you have received your notification in queue email
+########### send email notify user available
+user.send.email.notify.available.subject=Talachitas.com - Notify Restaurant Available {0} {1}
+user.send.email.notify.available.body={0} {1}, you have received your notification available email
+########### send email notify user cancelled
+user.send.email.notify.cancelled.subject=Talachitas.com - Notify Restaurant Cancelled {0} {1}
+user.send.email.notify.cancelled.body={0} {1}, you have received your notification Cancelled email
+########### send email notify user completed
+user.send.email.notify.completed.subject=Talachitas.com - Notify Restaurant Completed {0} {1}
+user.send.email.notify.completed.body={0} {1}, you have received your notification Completed email
 ########### reset account email
 user.send.email.reset.subject=Talachitas.com - Reset Account {0} {1}
 user.send.email.reset.body={0} {1}, you have received your reset account details
